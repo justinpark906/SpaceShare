@@ -2,6 +2,7 @@
 
 import { CityMap } from "@/components/map";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -15,6 +16,9 @@ export default function Home() {
           <span className="text-xl font-semibold text-gray-900">EcoSquare</span>
         </div>
         <nav className="flex items-center gap-4">
+          <Link href="/dashboard">
+            <Button variant="ghost">Dashboard</Button>
+          </Link>
           <Button variant="ghost">List Your Space</Button>
           <Button>Sign In</Button>
         </nav>
