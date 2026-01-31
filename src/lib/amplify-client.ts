@@ -1,10 +1,31 @@
 "use client";
 
 import { generateClient } from "aws-amplify/data";
+import { Amplify } from "aws-amplify";
 import type { Schema } from "../../amplify/data/resource";
 
-// Generate a typed client for Amplify Data operations
-export const client = generateClient<Schema>();
+// Check if Amplify is properly configured with GraphQL
+export function isAmplifyConfigured(): boolean {
+  try {
+    const config = Amplify.getConfig();
+    return !!config?.API?.GraphQL?.endpoint;
+  } catch {
+    return false;
+  }
+}
+
+// Lazy client generation - only create when actually needed
+let _client: ReturnType<typeof generateClient<Schema>> | null = null;
+
+export function getClient() {
+  if (!isAmplifyConfigured()) {
+    throw new Error("Amplify not configured");
+  }
+  if (!_client) {
+    _client = generateClient<Schema>();
+  }
+  return _client;
+}
 
 // Simplified Space type for frontend use (without lazy loaders)
 export interface Space {

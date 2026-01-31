@@ -5,7 +5,11 @@ import Map, { NavigationControl } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { SpaceMarker } from "./SpaceMarker";
 import { SpaceCard } from "./SpaceCard";
-import { client, type Space } from "@/lib/amplify-client";
+import {
+  getClient,
+  isAmplifyConfigured,
+  type Space,
+} from "@/lib/amplify-client";
 
 // Default center (San Francisco - change to your city)
 const DEFAULT_CENTER = {
@@ -26,6 +30,16 @@ export function CityMap() {
   const fetchSpaces = useCallback(async () => {
     try {
       setLoading(true);
+
+      // Check if Amplify backend is configured
+      if (!isAmplifyConfigured()) {
+        console.log("Amplify not configured, using mock data");
+        setSpaces(getMockSpaces());
+        setError(null);
+        return;
+      }
+
+      const client = getClient();
       const { data, errors } = await client.models.Space.list({
         filter: {
           status: { eq: "AVAILABLE" },
