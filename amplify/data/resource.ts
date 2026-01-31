@@ -15,6 +15,10 @@ const schema = a.schema({
       address: a.string(),
       status: a.enum(["AVAILABLE", "BOOKED", "OCCUPIED"]),
       imageUrl: a.string(),
+      // IoT Digital Twin fields
+      geofenceId: a.string(), // Links to Amazon Location Service geofence
+      isUnlocked: a.boolean().default(false), // "Hack" shortcut for frontend polling
+      lastUnlockTime: a.datetime(),
       // Owner relationship
       ownerId: a.id().required(),
       owner: a.belongsTo("Profile", "ownerId"),
