@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Map, { NavigationControl } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { SpaceMarker } from "./SpaceMarker";
-import { SpaceCard } from "./SpaceCard";
+import { BookingSheet } from "./BookingSheet";
+import { ActiveSession } from "./ActiveSession";
 import {
   getClient,
   isAmplifyConfigured,
@@ -26,6 +27,14 @@ export function CityMap() {
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Booking flow state
+  const [showBookingSheet, setShowBookingSheet] = useState(false);
+  const [activeSession, setActiveSession] = useState<{
+    space: Space;
+    hours: number;
+    transactionId?: string;
+  } | null>(null);
 
   const fetchSpaces = useCallback(async () => {
     try {
@@ -84,17 +93,43 @@ export function CityMap() {
     fetchSpaces();
   }, [fetchSpaces]);
 
+  const handleMarkerClick = (space: Space) => {
+    setSelectedSpace(space);
+    setShowBookingSheet(true);
+  };
+
+  const handleBookingConfirm = (space: Space, hours: number) => {
+    setShowBookingSheet(false);
+    setActiveSession({
+      space,
+      hours,
+      transactionId: `txn_${Date.now()}`,
+    });
+  };
+
+  const handleSessionEnd = () => {
+    setActiveSession(null);
+    setSelectedSpace(null);
+    // Refresh spaces to show updated availability
+    fetchSpaces();
+  };
+
   return (
     <div className="relative h-full w-full">
       <Map
         initialViewState={{
           longitude: DEFAULT_CENTER.longitude,
           latitude: DEFAULT_CENTER.latitude,
-          zoom: 12,
+          zoom: 13,
         }}
         style={{ width: "100%", height: "100%" }}
         mapStyle={MAP_STYLE}
-        onClick={() => setSelectedSpace(null)}
+        onClick={() => {
+          if (!activeSession) {
+            setSelectedSpace(null);
+            setShowBookingSheet(false);
+          }
+        }}
       >
         <NavigationControl position="top-right" />
 
@@ -102,64 +137,87 @@ export function CityMap() {
           <SpaceMarker
             key={space.id}
             space={space}
-            onClick={setSelectedSpace}
+            onClick={handleMarkerClick}
+            isSelected={selectedSpace?.id === space.id}
           />
         ))}
       </Map>
 
       {/* Loading indicator */}
       {loading && (
-        <div className="absolute top-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md">
-          <span className="text-sm text-gray-600">Loading spaces...</span>
+        <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-lg shadow-md">
+          <span className="text-sm text-gray-600 flex items-center gap-2">
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+                fill="none"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            Finding spaces...
+          </span>
         </div>
       )}
 
       {/* Error message */}
       {error && (
-        <div className="absolute top-4 left-4 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
+        <div className="absolute top-4 left-4 bg-red-50 border border-red-200 px-4 py-2 rounded-lg">
           <span className="text-sm text-red-600">{error}</span>
         </div>
       )}
 
-      {/* Space count */}
-      {!loading && !error && (
-        <div className="absolute top-4 left-4 bg-white px-3 py-2 rounded-lg shadow-md">
-          <span className="text-sm text-gray-600">
+      {/* Space count & Legend */}
+      {!loading && !error && !activeSession && (
+        <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-md">
+          <p className="text-sm font-medium text-gray-900 mb-3">
             {spaces.length} space{spaces.length !== 1 ? "s" : ""} available
-          </span>
+          </p>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-full bg-blue-500" />
+              <span className="text-xs text-gray-600">Parking</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-full bg-green-500" />
+              <span className="text-xs text-gray-600">Storage</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-full bg-amber-500" />
+              <span className="text-xs text-gray-600">Garden</span>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Selected space card */}
-      {selectedSpace && (
-        <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80">
-          <SpaceCard
-            space={selectedSpace}
-            onClose={() => setSelectedSpace(null)}
-          />
-        </div>
-      )}
+      {/* Booking Sheet */}
+      <BookingSheet
+        space={selectedSpace}
+        isOpen={showBookingSheet && !activeSession}
+        onClose={() => {
+          setShowBookingSheet(false);
+          setSelectedSpace(null);
+        }}
+        onBook={handleBookingConfirm}
+      />
 
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-white p-3 rounded-lg shadow-md hidden md:block">
-        <div className="text-xs font-medium text-gray-700 mb-2">
-          Space Types
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-blue-500" />
-            <span className="text-xs text-gray-600">Parking</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-green-500" />
-            <span className="text-xs text-gray-600">Storage</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 rounded-full bg-amber-500" />
-            <span className="text-xs text-gray-600">Garden</span>
-          </div>
-        </div>
-      </div>
+      {/* Active Session Overlay */}
+      {activeSession && (
+        <ActiveSession
+          space={activeSession.space}
+          hours={activeSession.hours}
+          transactionId={activeSession.transactionId}
+          onEndSession={handleSessionEnd}
+        />
+      )}
     </div>
   );
 }
@@ -170,7 +228,8 @@ function getMockSpaces(): Space[] {
     {
       id: "mock-1",
       name: "Sarah's Garden",
-      description: "Beautiful backyard garden available for urban farming",
+      description:
+        "Beautiful backyard garden available for urban farming. Perfect for growing vegetables or flowers.",
       type: "GARDEN",
       pricePerHour: 5.0,
       latitude: 37.7849,
@@ -178,14 +237,15 @@ function getMockSpaces(): Space[] {
       address: "123 Green St, San Francisco",
       status: "AVAILABLE",
       imageUrl: null,
-      ownerId: "owner-1",
+      ownerId: "sarah_123",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
     {
       id: "mock-2",
       name: "Downtown Parking Spot",
-      description: "Covered parking in downtown area",
+      description:
+        "Covered parking spot in the heart of downtown. 24/7 access, well-lit area.",
       type: "PARKING",
       pricePerHour: 3.5,
       latitude: 37.7749,
@@ -193,14 +253,15 @@ function getMockSpaces(): Space[] {
       address: "456 Market St, San Francisco",
       status: "AVAILABLE",
       imageUrl: null,
-      ownerId: "owner-2",
+      ownerId: "sarah_123",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
     {
       id: "mock-3",
       name: "Secure Storage Unit",
-      description: "Climate-controlled storage space",
+      description:
+        "Climate-controlled storage space. Great for seasonal items or business inventory.",
       type: "STORAGE",
       pricePerHour: 2.0,
       latitude: 37.7649,
@@ -208,7 +269,39 @@ function getMockSpaces(): Space[] {
       address: "789 Storage Ave, San Francisco",
       status: "AVAILABLE",
       imageUrl: null,
-      ownerId: "owner-3",
+      ownerId: "sarah_123",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: "mock-4",
+      name: "Sunset Parking",
+      description:
+        "Easy access parking near Golden Gate Park. Perfect for day trips.",
+      type: "PARKING",
+      pricePerHour: 4.0,
+      latitude: 37.7699,
+      longitude: -122.4544,
+      address: "321 Sunset Blvd, San Francisco",
+      status: "AVAILABLE",
+      imageUrl: null,
+      ownerId: "owner_456",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: "mock-5",
+      name: "Community Garden Plot",
+      description:
+        "Shared garden space with water access. Join our community of urban farmers!",
+      type: "GARDEN",
+      pricePerHour: 3.0,
+      latitude: 37.7599,
+      longitude: -122.4144,
+      address: "567 Garden Way, San Francisco",
+      status: "AVAILABLE",
+      imageUrl: null,
+      ownerId: "owner_789",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },

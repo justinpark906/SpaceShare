@@ -1,6 +1,7 @@
 "use client";
 
 import { CityMap } from "@/components/map";
+import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -17,7 +18,7 @@ export default function Home() {
         </div>
         <nav className="flex items-center gap-4">
           <Link href="/dashboard">
-            <Button variant="ghost">Dashboard</Button>
+            <Button variant="ghost">Sarah's Dashboard</Button>
           </Link>
           <Button variant="ghost">List Your Space</Button>
           <Button>Sign In</Button>
@@ -25,8 +26,10 @@ export default function Home() {
       </header>
 
       {/* Main Map Area */}
-      <main className="flex-1">
+      <main className="flex-1 relative">
         <CityMap />
+        {/* Admin Panel for Demo */}
+        <AdminPanel />
       </main>
     </div>
   );

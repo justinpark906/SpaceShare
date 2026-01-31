@@ -6,7 +6,10 @@ import type { Space } from "@/lib/amplify-client";
 interface SpaceMarkerProps {
   space: Space;
   onClick?: (space: Space) => void;
+  isSelected?: boolean;
 }
+
+type SpaceType = "PARKING" | "STORAGE" | "GARDEN";
 
 const typeColors = {
   PARKING: "#3B82F6", // blue
@@ -14,15 +17,26 @@ const typeColors = {
   GARDEN: "#F59E0B", // amber
 };
 
+// Custom SVG icons for each space type
 const typeIcons = {
-  PARKING: "P",
-  STORAGE: "S",
-  GARDEN: "G",
+  PARKING: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+      <path d="M13 3H6v18h4v-6h3c3.31 0 6-2.69 6-6s-2.69-6-6-6zm.2 8H10V7h3.2c1.1 0 2 .9 2 2s-.9 2-2 2z" />
+    </svg>
+  ),
+  STORAGE: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+      <path d="M20 2H4c-1 0-2 .9-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1.1-1-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4h16v3z" />
+    </svg>
+  ),
+  GARDEN: (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+      <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z" />
+    </svg>
+  ),
 };
 
-type SpaceType = "PARKING" | "STORAGE" | "GARDEN";
-
-export function SpaceMarker({ space, onClick }: SpaceMarkerProps) {
+export function SpaceMarker({ space, onClick, isSelected }: SpaceMarkerProps) {
   const spaceType = (space.type || "PARKING") as SpaceType;
   const color = typeColors[spaceType];
   const icon = typeIcons[spaceType];
@@ -38,19 +52,39 @@ export function SpaceMarker({ space, onClick }: SpaceMarkerProps) {
       }}
     >
       <div
-        className="cursor-pointer transition-transform hover:scale-110"
+        className={`cursor-pointer transition-all duration-200 ${
+          isSelected ? "scale-125 z-10" : "hover:scale-110"
+        }`}
         title={space.name}
       >
+        {/* Pin shape */}
         <div
-          className="flex h-8 w-8 items-center justify-center rounded-full text-white text-sm font-bold shadow-lg"
+          className={`relative flex items-center justify-center rounded-full text-white shadow-lg ${
+            isSelected ? "w-12 h-12" : "w-10 h-10"
+          }`}
           style={{ backgroundColor: color }}
         >
           {icon}
+          {/* Pulse animation for selected */}
+          {isSelected && (
+            <span
+              className="absolute inset-0 rounded-full animate-ping opacity-30"
+              style={{ backgroundColor: color }}
+            />
+          )}
         </div>
+        {/* Pin point */}
         <div
-          className="mx-auto h-2 w-2 -mt-1 rotate-45"
+          className="mx-auto w-3 h-3 -mt-1.5 rotate-45"
           style={{ backgroundColor: color }}
         />
+        {/* Price tag */}
+        <div
+          className="absolute -top-1 -right-1 bg-white rounded-full px-1.5 py-0.5 text-xs font-bold shadow-md"
+          style={{ color }}
+        >
+          ${space.pricePerHour}
+        </div>
       </div>
     </Marker>
   );

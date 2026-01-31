@@ -1,18 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { EarningsChart } from "@/components/EarningsChart";
+import { AdminPanel } from "@/components/AdminPanel";
+import Link from "next/link";
 
 // Mock data for demo
 const MOCK_LISTER_DATA = {
-  name: 'Sarah',
-  totalEarningsToday: 47.20,
-  totalEarningsMonth: 892.40,
+  name: "Sarah",
+  totalEarningsToday: 47.2,
+  totalEarningsMonth: 892.4,
   totalSavedForTaxes: 178.48,
-  taxVaultBalance: 892.40,
-  pendingPayouts: 12.50,
+  taxVaultBalance: 892.4,
+  pendingPayouts: 12.5,
 
   // Impact metrics
   totalRentalsHosted: 156,
@@ -22,17 +30,52 @@ const MOCK_LISTER_DATA = {
 
   // Recent transactions
   recentTransactions: [
-    { id: 1, type: 'earning', amount: 12.50, description: 'Parking - Marcus R.', time: '2 hours ago', status: 'pending' },
-    { id: 2, type: 'earning', amount: 8.00, description: 'Storage - Alex T.', time: '5 hours ago', status: 'disbursed' },
-    { id: 3, type: 'sweep', amount: 1.60, description: 'Tax Sweep (20%)', time: '5 hours ago', status: 'swept' },
-    { id: 4, type: 'earning', amount: 15.00, description: 'Garden - Jamie L.', time: 'Yesterday', status: 'disbursed' },
-    { id: 5, type: 'sweep', amount: 3.00, description: 'Tax Sweep (20%)', time: 'Yesterday', status: 'swept' },
+    {
+      id: 1,
+      type: "earning",
+      amount: 12.5,
+      description: "Parking - Marcus R.",
+      time: "2 hours ago",
+      status: "pending",
+    },
+    {
+      id: 2,
+      type: "earning",
+      amount: 8.0,
+      description: "Storage - Alex T.",
+      time: "5 hours ago",
+      status: "disbursed",
+    },
+    {
+      id: 3,
+      type: "sweep",
+      amount: 1.6,
+      description: "Tax Sweep (20%)",
+      time: "5 hours ago",
+      status: "swept",
+    },
+    {
+      id: 4,
+      type: "earning",
+      amount: 15.0,
+      description: "Garden - Jamie L.",
+      time: "Yesterday",
+      status: "disbursed",
+    },
+    {
+      id: 5,
+      type: "sweep",
+      amount: 3.0,
+      description: "Tax Sweep (20%)",
+      time: "Yesterday",
+      status: "swept",
+    },
   ],
 };
 
 export default function Dashboard() {
   const [data, setData] = useState(MOCK_LISTER_DATA);
-  const [activeTab, setActiveTab] = useState<'earnings' | 'impact'>('earnings');
+  const [activeTab, setActiveTab] = useState<"earnings" | "impact">("earnings");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -43,11 +86,15 @@ export default function Dashboard() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600 text-white font-bold">
               E
             </div>
-            <span className="text-xl font-semibold text-gray-900">EcoSquare</span>
+            <span className="text-xl font-semibold text-gray-900">
+              EcoSquare
+            </span>
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">Welcome, {data.name}!</span>
-            <Button variant="outline" size="sm">Sign Out</Button>
+            <Button variant="outline" size="sm">
+              Sign Out
+            </Button>
           </div>
         </div>
       </header>
@@ -56,31 +103,36 @@ export default function Dashboard() {
         {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Lister Dashboard</h1>
-          <p className="text-gray-600 mt-1">Track your earnings and community impact</p>
+          <p className="text-gray-600 mt-1">
+            Track your earnings and community impact
+          </p>
         </div>
 
         {/* Tab Navigation */}
         <div className="flex gap-2 mb-6">
           <Button
-            variant={activeTab === 'earnings' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('earnings')}
+            variant={activeTab === "earnings" ? "default" : "outline"}
+            onClick={() => setActiveTab("earnings")}
           >
             Earnings & Savings
           </Button>
           <Button
-            variant={activeTab === 'impact' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('impact')}
+            variant={activeTab === "impact" ? "default" : "outline"}
+            onClick={() => setActiveTab("impact")}
           >
             Community Impact
           </Button>
         </div>
 
-        {activeTab === 'earnings' ? (
+        {activeTab === "earnings" ? (
           <EarningsTab data={data} />
         ) : (
           <ImpactTab data={data} />
         )}
       </main>
+
+      {/* Admin Panel for Demo */}
+      <AdminPanel />
     </div>
   );
 }
@@ -119,7 +171,9 @@ function EarningsTab({ data }: { data: typeof MOCK_LISTER_DATA }) {
         {/* Tax Savings Vault */}
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader className="pb-2">
-            <CardDescription className="text-blue-700">Tax Savings Vault</CardDescription>
+            <CardDescription className="text-blue-700">
+              Tax Savings Vault
+            </CardDescription>
             <CardTitle className="text-3xl text-blue-600">
               ${data.taxVaultBalance.toFixed(2)}
             </CardTitle>
@@ -143,6 +197,17 @@ function EarningsTab({ data }: { data: typeof MOCK_LISTER_DATA }) {
         </Card>
       </div>
 
+      {/* Earnings Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Today's Earnings</CardTitle>
+          <CardDescription>Hourly breakdown of your earnings</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EarningsChart />
+        </CardContent>
+      </Card>
+
       {/* Savings Sweep Explanation */}
       <Card className="border-green-200 bg-green-50">
         <CardHeader>
@@ -162,7 +227,9 @@ function EarningsTab({ data }: { data: typeof MOCK_LISTER_DATA }) {
             </div>
             <div>
               <p className="text-sm text-gray-600">Already Saved</p>
-              <p className="text-xl font-bold text-green-600">${data.taxVaultBalance.toFixed(2)}</p>
+              <p className="text-xl font-bold text-green-600">
+                ${data.taxVaultBalance.toFixed(2)}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Progress</p>
@@ -172,7 +239,9 @@ function EarningsTab({ data }: { data: typeof MOCK_LISTER_DATA }) {
                   style={{ width: `${(data.taxVaultBalance / 2450) * 100}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">{((data.taxVaultBalance / 2450) * 100).toFixed(1)}% saved</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {((data.taxVaultBalance / 2450) * 100).toFixed(1)}% saved
+              </p>
             </div>
           </div>
         </CardContent>
@@ -187,12 +256,17 @@ function EarningsTab({ data }: { data: typeof MOCK_LISTER_DATA }) {
         <CardContent>
           <div className="space-y-3">
             {data.recentTransactions.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between py-2 border-b last:border-0">
+              <div
+                key={tx.id}
+                className="flex items-center justify-between py-2 border-b last:border-0"
+              >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    tx.type === 'earning' ? 'bg-green-100' : 'bg-blue-100'
-                  }`}>
-                    {tx.type === 'earning' ? '💰' : '🏦'}
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      tx.type === "earning" ? "bg-green-100" : "bg-blue-100"
+                    }`}
+                  >
+                    {tx.type === "earning" ? "💰" : "🏦"}
                   </div>
                   <div>
                     <p className="font-medium text-sm">{tx.description}</p>
@@ -200,12 +274,16 @@ function EarningsTab({ data }: { data: typeof MOCK_LISTER_DATA }) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`font-semibold ${
-                    tx.type === 'earning' ? 'text-green-600' : 'text-blue-600'
-                  }`}>
-                    {tx.type === 'earning' ? '+' : '-'}${tx.amount.toFixed(2)}
+                  <p
+                    className={`font-semibold ${
+                      tx.type === "earning" ? "text-green-600" : "text-blue-600"
+                    }`}
+                  >
+                    {tx.type === "earning" ? "+" : "-"}${tx.amount.toFixed(2)}
                   </p>
-                  <p className="text-xs text-gray-500 capitalize">{tx.status}</p>
+                  <p className="text-xs text-gray-500 capitalize">
+                    {tx.status}
+                  </p>
                 </div>
               </div>
             ))}
@@ -295,17 +373,19 @@ function ImpactTab({ data }: { data: typeof MOCK_LISTER_DATA }) {
                 <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-green-500 rounded-full"
-                    style={{ width: '62%' }}
+                    style={{ width: "62%" }}
                   />
                 </div>
               </div>
               <p className="text-sm text-gray-600">
-                That's equivalent to planting <span className="font-bold text-green-600">5 trees</span>! 🌳
+                That's equivalent to planting{" "}
+                <span className="font-bold text-green-600">5 trees</span>! 🌳
               </p>
               <div className="bg-green-50 p-3 rounded-lg">
                 <p className="text-sm text-green-800">
-                  By sharing your parking space, you've helped reduce unnecessary driving
-                  as people search for parking. Each rental saves an average of 0.6 lbs of CO2!
+                  By sharing your parking space, you've helped reduce
+                  unnecessary driving as people search for parking. Each rental
+                  saves an average of 0.6 lbs of CO2!
                 </p>
               </div>
             </div>
@@ -379,12 +459,16 @@ function ImpactTab({ data }: { data: typeof MOCK_LISTER_DATA }) {
             <div className="flex-1">
               <h3 className="font-semibold text-lg mb-2">Great Progress! 🎉</h3>
               <p className="text-gray-600 text-sm mb-4">
-                You're in the top 15% of community contributors in San Francisco.
-                Keep sharing to reach Gold status!
+                You're in the top 15% of community contributors in San
+                Francisco. Keep sharing to reach Gold status!
               </p>
               <div className="flex gap-2">
-                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">Silver Member</span>
-                <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">22 points to Gold</span>
+                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
+                  Silver Member
+                </span>
+                <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
+                  22 points to Gold
+                </span>
               </div>
             </div>
           </div>
