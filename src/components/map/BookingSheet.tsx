@@ -16,7 +16,7 @@ interface BookingSheetProps {
   space: Space | null;
   isOpen: boolean;
   onClose: () => void;
-  onBook: (space: Space, days: number) => void;
+  onBook: (space: Space, days: number, totalPrice: number) => void;
 }
 
 type SpaceType = "PARKING" | "STORAGE" | "GARDEN";
@@ -62,20 +62,53 @@ export function BookingSheet({
     setIsBooking(true);
 
     try {
-      const response = await fetch("/api/pay/initiate", {
+      // 1. Create booking in database and mark space as unavailable
+      const bookingResponse = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           spaceId: space.id,
-          renterId: user?.id || "guest",
+          renterId: user?.id,
+          days,
+          totalPrice: finalTotal,
+        }),
+      });
+
+      if (!bookingResponse.ok) {
+        throw new Error("Failed to create booking");
+      }
+
+      const { booking } = await bookingResponse.json();
+
+      // 2. Initiate payment
+      const paymentResponse = await fetch("/api/pay/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          spaceId: space.id,
+          renterId: user?.id,
           listerId: space.ownerId,
           amount: finalTotal,
           days,
         }),
       });
 
-      if (response.ok) {
-        onBook(space, days);
+      if (paymentResponse.ok) {
+        // 3. Optional: Create geofence for automatic unlock (AWS Location Service)
+        if (booking?.id) {
+          try {
+            await fetch("/api/geofence/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ bookingId: booking.id }),
+            });
+          } catch (geofenceError) {
+            // Geofencing is optional - don't fail booking if it fails
+            console.warn("Geofence creation failed:", geofenceError);
+          }
+        }
+
+        onBook(space, days, finalTotal);
       }
     } catch (error) {
       console.error("Booking error:", error);

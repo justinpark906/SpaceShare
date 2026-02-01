@@ -5,7 +5,8 @@ import Map, { NavigationControl, MapRef } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { SpaceMarker } from "./SpaceMarker";
 import { BookingSheet } from "./BookingSheet";
-import { ActiveSession } from "./ActiveSession";
+import { BookingConfirmation } from "./BookingConfirmation";
+import { useRouter } from "next/navigation";
 import { createClient, DbSpace } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { Bike, Car, Truck } from "lucide-react";
@@ -49,6 +50,7 @@ type VehicleFilter = "ALL" | "SMALL" | "MEDIUM" | "LARGE";
 
 export function CityMap({ initialCenter }: CityMapProps) {
   const mapRef = useRef<MapRef>(null);
+  const router = useRouter();
   const { user } = useAuth();
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
@@ -64,10 +66,10 @@ export function CityMap({ initialCenter }: CityMapProps) {
 
   // Booking flow state
   const [showBookingSheet, setShowBookingSheet] = useState(false);
-  const [activeSession, setActiveSession] = useState<{
+  const [confirmedBooking, setConfirmedBooking] = useState<{
     space: Space;
     days: number;
-    transactionId?: string;
+    totalPrice: number;
   } | null>(null);
 
   const fetchSpaces = useCallback(async () => {
@@ -154,20 +156,28 @@ export function CityMap({ initialCenter }: CityMapProps) {
     setShowBookingSheet(true);
   };
 
-  const handleBookingConfirm = (space: Space, days: number) => {
+  const handleBookingConfirm = (
+    space: Space,
+    days: number,
+    totalPrice: number,
+  ) => {
     setShowBookingSheet(false);
-    setActiveSession({
+    setConfirmedBooking({
       space,
       days,
-      transactionId: `txn_${Date.now()}`,
+      totalPrice,
     });
+    // Refresh spaces to reflect the booking (space is now unavailable)
+    fetchSpaces();
   };
 
-  const handleSessionEnd = () => {
-    setActiveSession(null);
+  const handleConfirmationClose = () => {
+    setConfirmedBooking(null);
     setSelectedSpace(null);
-    // Refresh spaces to show updated availability
-    fetchSpaces();
+  };
+
+  const handleViewDashboard = () => {
+    router.push("/dashboard?tab=bookings");
   };
 
   // Filter spaces based on vehicle filter
@@ -207,7 +217,7 @@ export function CityMap({ initialCenter }: CityMapProps) {
         projection={{ type: "globe" } as any}
         onLoad={handleMapLoad}
         onClick={() => {
-          if (!activeSession) {
+          if (!confirmedBooking) {
             setSelectedSpace(null);
             setShowBookingSheet(false);
           }
@@ -259,7 +269,7 @@ export function CityMap({ initialCenter }: CityMapProps) {
       )}
 
       {/* Space count & Legend */}
-      {!loading && !error && !activeSession && (
+      {!loading && !error && !confirmedBooking && (
         <div className="absolute top-20 left-4 bg-white p-4 rounded-lg shadow-md max-w-xs">
           <p className="text-sm font-medium text-gray-900 mb-3">
             {filteredSpaces.length} space
@@ -360,7 +370,7 @@ export function CityMap({ initialCenter }: CityMapProps) {
       {/* Booking Sheet */}
       <BookingSheet
         space={selectedSpace}
-        isOpen={showBookingSheet && !activeSession}
+        isOpen={showBookingSheet && !confirmedBooking}
         onClose={() => {
           setShowBookingSheet(false);
           setSelectedSpace(null);
@@ -368,13 +378,14 @@ export function CityMap({ initialCenter }: CityMapProps) {
         onBook={handleBookingConfirm}
       />
 
-      {/* Active Session Overlay */}
-      {activeSession && (
-        <ActiveSession
-          space={activeSession.space}
-          days={activeSession.days}
-          transactionId={activeSession.transactionId}
-          onEndSession={handleSessionEnd}
+      {/* Booking Confirmation */}
+      {confirmedBooking && (
+        <BookingConfirmation
+          space={confirmedBooking.space}
+          days={confirmedBooking.days}
+          totalPrice={confirmedBooking.totalPrice}
+          onClose={handleConfirmationClose}
+          onViewDashboard={handleViewDashboard}
         />
       )}
     </div>

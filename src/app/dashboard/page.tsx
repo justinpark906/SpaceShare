@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -168,12 +168,25 @@ function openDirections(lat: number, lng: number, address: string) {
 export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [myBookings, setMyBookings] = useState<Booking[]>([]);
   const [myListings, setMyListings] = useState<Space[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<
     "bookings" | "listings" | "financials"
   >("bookings");
+
+  // Handle tab query parameter
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (
+      tabParam === "bookings" ||
+      tabParam === "listings" ||
+      tabParam === "financials"
+    ) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
