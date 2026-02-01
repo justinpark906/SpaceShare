@@ -156,7 +156,7 @@ export function AdminPanel({ onSimulateArrival, onSimulateDeparture, onReset }: 
               href="/dashboard"
               className="flex-1 text-center text-xs py-2 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
             >
-              Sarah's Dashboard
+              Dashboard
             </a>
             <a
               href="/"
