@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +19,8 @@ import {
   FileText,
   Check,
   Calendar,
+  Bike,
+  Truck,
 } from "lucide-react";
 
 const SPACE_TYPES = [
@@ -38,6 +41,36 @@ const SPACE_TYPES = [
     label: "Garden",
     icon: Flower2,
     description: "Backyards, plots, green spaces",
+  },
+] as const;
+
+const PARKING_SIZES = [
+  {
+    id: "SMALL",
+    label: "Small",
+    description: "Motorcycle / Two-Wheeler",
+    icon: Bike,
+    color: "text-red-500",
+    bgColor: "bg-red-500/10",
+    borderColor: "border-red-500",
+  },
+  {
+    id: "MEDIUM",
+    label: "Medium",
+    description: "Standard Car / Automobile",
+    icon: Car,
+    color: "text-blue-500",
+    bgColor: "bg-blue-500/10",
+    borderColor: "border-blue-500",
+  },
+  {
+    id: "LARGE",
+    label: "Large",
+    description: "Truck / Heavy-Duty",
+    icon: Truck,
+    color: "text-yellow-500",
+    bgColor: "bg-yellow-500/10",
+    borderColor: "border-yellow-500",
   },
 ] as const;
 
@@ -89,6 +122,9 @@ export default function ListSpacePage() {
   const [spaceType, setSpaceType] = useState<
     "PARKING" | "STORAGE" | "GARDEN" | ""
   >("");
+  const [parkingType, setParkingType] = useState<
+    "SMALL" | "MEDIUM" | "LARGE" | ""
+  >("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
@@ -134,6 +170,8 @@ export default function ListSpacePage() {
         name,
         description: description || null,
         type: spaceType,
+        parking_type:
+          spaceType === "PARKING" && parkingType ? parkingType : null,
         price_per_day: parseFloat(pricePerDay),
         max_rental_days: parseInt(maxRentalDays),
         latitude: coords.lat + latOffset,
@@ -192,9 +230,13 @@ export default function ListSpacePage() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600 text-white font-bold text-lg">
-            S
-          </div>
+          <Image
+            src="/spaceshare-removebg-preview.png"
+            alt="SpaceShare"
+            width={40}
+            height={40}
+            className="rounded-lg"
+          />
           <span className="text-2xl font-bold text-white">SpaceShare</span>
         </Link>
         <Link href="/">
@@ -258,7 +300,12 @@ export default function ListSpacePage() {
                       <button
                         key={type.id}
                         type="button"
-                        onClick={() => setSpaceType(type.id)}
+                        onClick={() => {
+                          setSpaceType(type.id);
+                          if (type.id !== "PARKING") {
+                            setParkingType("");
+                          }
+                        }}
                         className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
                           spaceType === type.id
                             ? "border-green-500 bg-green-500/10"
@@ -284,10 +331,54 @@ export default function ListSpacePage() {
                     );
                   })}
                 </div>
+
+                {/* Parking Vehicle Size Selector */}
+                {spaceType === "PARKING" && (
+                  <div className="space-y-3 pt-2">
+                    <label className="block text-sm font-medium text-gray-300">
+                      Allowed Vehicle Size
+                    </label>
+                    <div className="flex gap-2">
+                      {PARKING_SIZES.map((size) => {
+                        const Icon = size.icon;
+                        const isSelected = parkingType === size.id;
+                        return (
+                          <button
+                            key={size.id}
+                            type="button"
+                            onClick={() => setParkingType(size.id)}
+                            className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                              isSelected
+                                ? `${size.borderColor} ${size.bgColor}`
+                                : "border-gray-700 hover:border-gray-600"
+                            }`}
+                          >
+                            <Icon
+                              className={`h-8 w-8 ${isSelected ? size.color : "text-gray-400"}`}
+                            />
+                            <div className="text-center">
+                              <p
+                                className={`font-medium ${isSelected ? "text-white" : "text-gray-300"}`}
+                              >
+                                {size.label}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {size.description}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <Button
                   type="button"
                   onClick={() => setStep(2)}
-                  disabled={!spaceType}
+                  disabled={
+                    !spaceType || (spaceType === "PARKING" && !parkingType)
+                  }
                   className="w-full py-6 bg-green-600 hover:bg-green-700"
                 >
                   Continue
@@ -502,6 +593,22 @@ export default function ListSpacePage() {
                     <p>
                       <span className="font-medium text-gray-200">Type:</span>{" "}
                       {SPACE_TYPES.find((t) => t.id === spaceType)?.label}
+                      {spaceType === "PARKING" && parkingType && (
+                        <span className="text-gray-400">
+                          {" "}
+                          (
+                          {
+                            PARKING_SIZES.find((s) => s.id === parkingType)
+                              ?.label
+                          }{" "}
+                          -{" "}
+                          {
+                            PARKING_SIZES.find((s) => s.id === parkingType)
+                              ?.description
+                          }
+                          )
+                        </span>
+                      )}
                     </p>
                     <p>
                       <span className="font-medium text-gray-200">Name:</span>{" "}

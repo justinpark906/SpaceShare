@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS spaces (
   city TEXT NOT NULL,
   status TEXT DEFAULT 'AVAILABLE' CHECK (status IN ('AVAILABLE', 'BOOKED', 'INACTIVE')),
   image_url TEXT,
+  -- Parking-specific: vehicle size allowed
+  parking_type TEXT CHECK (parking_type IN ('SMALL', 'MEDIUM', 'LARGE')),
   -- Dimensions in feet
   width_ft DECIMAL(10, 2),
   length_ft DECIMAL(10, 2),

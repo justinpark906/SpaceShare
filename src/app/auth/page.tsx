@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,9 +53,13 @@ export default function AuthPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600 text-white font-bold text-lg">
-            S
-          </div>
+          <Image
+            src="/spaceshare-removebg-preview.png"
+            alt="SpaceShare"
+            width={40}
+            height={40}
+            className="rounded-lg"
+          />
           <span className="text-2xl font-bold text-white">SpaceShare</span>
         </Link>
         <Link href="/">
@@ -128,7 +133,11 @@ export default function AuthPage() {
                 disabled={loading}
                 className="w-full py-6 bg-green-600 hover:bg-green-700 text-lg"
               >
-                {loading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
+                {loading
+                  ? "Please wait..."
+                  : isSignUp
+                    ? "Create Account"
+                    : "Sign In"}
               </Button>
             </form>
 
@@ -149,7 +158,8 @@ export default function AuthPage() {
           </div>
 
           <p className="text-center text-gray-400 text-sm mt-6">
-            By continuing, you agree to SpaceShare's Terms of Service and Privacy Policy.
+            By continuing, you agree to SpaceShare's Terms of Service and
+            Privacy Policy.
           </p>
         </div>
       </div>

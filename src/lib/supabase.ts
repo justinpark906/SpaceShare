@@ -24,6 +24,8 @@ export interface DbSpace {
   city: string;
   status: "AVAILABLE" | "BOOKED" | "INACTIVE";
   image_url: string | null;
+  // Parking-specific: vehicle size allowed
+  parking_type: "SMALL" | "MEDIUM" | "LARGE" | null;
   // Dimensions
   width_ft: number | null;
   length_ft: number | null;

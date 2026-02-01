@@ -355,10 +355,11 @@ export default function Home() {
   return (
     <div className="scroll-smooth">
       <div
-        className={`sticky top-0 z-50 transition-all duration-300 ${isMapView
-          ? "bg-black/60 backdrop-blur border-b border-white/5"
-          : "bg-transparent"
-          }`}
+        className={`sticky top-0 z-50 transition-all duration-300 ${
+          isMapView
+            ? "bg-black/60 backdrop-blur border-b border-white/5"
+            : "bg-transparent"
+        }`}
       >
         <Header variant="hero" />
       </div>
@@ -366,7 +367,6 @@ export default function Home() {
       <div className="bg-gradient-to-br from-black via-gray-900 to-green-950">
         {/* Hero Section - Full Viewport */}
         <section className="min-h-screen flex flex-col">
-
           {/* Hero Content */}
           <div className="relative z-0 flex-1 flex flex-col items-center justify-center px-6 -mt-16">
             <div className="max-w-4xl text-center space-y-8">
@@ -388,7 +388,7 @@ export default function Home() {
                   <Search className="absolute left-4 h-5 w-5 text-gray-500" />
                   <Input
                     type="text"
-                    placeholder="Search a city (e.g., San Francisco, New York...)"
+                    placeholder="Search a city"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-12 pr-32 py-6 text-lg rounded-full border-2 border-gray-700 bg-gray-900/50 backdrop-blur-sm text-white placeholder:text-gray-500 focus:border-green-500 shadow-lg"
@@ -401,7 +401,7 @@ export default function Home() {
                   </Button>
                 </div>
                 <p className="text-sm text-gray-400 mt-3">
-                  Try: San Francisco, Providence, New York, Chicago, Miami, Austin
+                  We support 200+ major cities and regions in the United States.
                 </p>
               </form>
 
