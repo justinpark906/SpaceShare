@@ -15,9 +15,9 @@ const DEFAULT_CENTER = {
   latitude: 39.8283,
 };
 
-// Map style - using Carto's Dark Matter for dark mode look similar to Google Maps
+// Map style - using Carto's Voyager for Google Maps-like appearance
 const MAP_STYLE =
-  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+  "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 
 // Simplified Space type for the map
 export interface Space {
@@ -50,84 +50,9 @@ export function CityMap({ initialCenter }: CityMapProps) {
   const [error, setError] = useState<string | null>(null);
   const [customMapStyle, setCustomMapStyle] = useState<any>(null);
 
-  // Load and customize map style to match Google Maps dark mode
+  // Use default Voyager style without customization
   useEffect(() => {
-    const loadCustomStyle = async () => {
-      try {
-        const response = await fetch(MAP_STYLE);
-        const style = await response.json();
-
-        // Deep navy water (match header blue) and dark gray land
-        const darkWaterColor = '#172554'; // Navy-ish header blue
-        const darkLandColor = '#0a0a0a'; // Very dark gray (slightly lighter than black)
-        const darkBackgroundColor = '#0a0a0a'; // Very dark gray background
-
-        // Modify all layers in the style
-        if (style.layers) {
-          style.layers.forEach((layer: any) => {
-            if (!layer.paint) return;
-
-            const layerId = layer.id?.toLowerCase() || '';
-            const isWater =
-              layerId.includes('water') ||
-              layerId.includes('ocean') ||
-              layerId.includes('sea') ||
-              layer.id === 'background';
-
-            const isLand =
-              !isWater && (
-                layerId.includes('land') ||
-                layerId.includes('country') ||
-                layerId.includes('admin') ||
-                layerId.includes('boundary') ||
-                layerId.includes('park') ||
-                layerId.includes('forest') ||
-                layerId.includes('landcover') ||
-                layerId.includes('landuse')
-              );
-
-            // Modify water layers
-            if (isWater) {
-              if (layer.paint['fill-color']) {
-                layer.paint['fill-color'] = darkWaterColor;
-              }
-              if (layer.paint['background-color']) {
-                layer.paint['background-color'] = darkWaterColor;
-              }
-              if (layer.paint['line-color']) {
-                layer.paint['line-color'] = darkWaterColor;
-              }
-            }
-
-            // Modify land layers
-            if (isLand) {
-              if (layer.paint['fill-color']) {
-                layer.paint['fill-color'] = darkLandColor;
-              }
-              if (layer.paint['background-color']) {
-                layer.paint['background-color'] = darkLandColor;
-              }
-            }
-          });
-        }
-
-        // Set background color
-        if (style.layers) {
-          const backgroundLayer = style.layers.find((l: any) => l.id === 'background');
-          if (backgroundLayer && backgroundLayer.paint) {
-            backgroundLayer.paint['background-color'] = darkBackgroundColor;
-          }
-        }
-
-        setCustomMapStyle(style);
-      } catch (err) {
-        console.error('Error loading custom map style:', err);
-        // Fall back to original style
-        setCustomMapStyle(MAP_STYLE);
-      }
-    };
-
-    loadCustomStyle();
+    setCustomMapStyle(MAP_STYLE);
   }, []);
 
   // Booking flow state
@@ -238,92 +163,7 @@ export function CityMap({ initialCenter }: CityMapProps) {
 
   // Customize map colors on load to match Google Maps dark mode
   const handleMapLoad = useCallback((event: any) => {
-    const map = event.target;
-
-    // Wait a bit for the map to fully initialize
-    setTimeout(() => {
-      try {
-        // Get all layers
-        const layers = map.getStyle().layers || [];
-
-        // Deep navy water (match header blue) and dark gray land
-        const darkWaterColor = '#172554'; // Navy-ish header blue for water
-        const darkLandColor = '#0a0a0a'; // Very dark gray for land (slightly lighter than black)
-        const darkBackgroundColor = '#0a0a0a'; // Very dark gray background
-
-        // Modify each layer
-        layers.forEach((layer: any) => {
-          if (!layer.id) return;
-
-          const layerId = layer.id;
-          const isWater =
-            layerId.toLowerCase().includes('water') ||
-            layerId.toLowerCase().includes('ocean') ||
-            layerId.toLowerCase().includes('sea') ||
-            layerId === 'background';
-
-          const isLand =
-            !isWater && (
-              layerId.toLowerCase().includes('land') ||
-              layerId.toLowerCase().includes('country') ||
-              layerId.toLowerCase().includes('admin') ||
-              layerId.toLowerCase().includes('boundary') ||
-              layerId.toLowerCase().includes('park') ||
-              layerId.toLowerCase().includes('forest') ||
-              layerId.toLowerCase().includes('landcover') ||
-              layerId.toLowerCase().includes('landuse')
-            );
-
-          try {
-            // Modify water layers
-            if (isWater) {
-              // Try all possible paint properties
-              ['fill-color', 'background-color', 'line-color', 'fill-outline-color'].forEach(prop => {
-                try {
-                  const currentValue = map.getPaintProperty(layerId, prop);
-                  if (currentValue !== undefined) {
-                    map.setPaintProperty(layerId, prop, darkWaterColor);
-                  }
-                } catch (e) {
-                  // Property doesn't exist, skip
-                }
-              });
-            }
-
-            // Modify land layers
-            if (isLand) {
-              ['fill-color', 'background-color'].forEach(prop => {
-                try {
-                  const currentValue = map.getPaintProperty(layerId, prop);
-                  if (currentValue !== undefined) {
-                    map.setPaintProperty(layerId, prop, darkLandColor);
-                  }
-                } catch (e) {
-                  // Property doesn't exist, skip
-                }
-              });
-            }
-          } catch (e) {
-            // Layer might not be accessible, continue
-          }
-        });
-
-        // Set background color
-        try {
-          const backgroundLayer = map.getLayer('background');
-          if (backgroundLayer) {
-            map.setPaintProperty('background', 'background-color', darkBackgroundColor);
-          }
-        } catch (e) {
-          // Background layer might not exist
-        }
-
-        // Force a repaint
-        map.triggerRepaint();
-      } catch (error) {
-        console.error('Error customizing map style:', error);
-      }
-    }, 100);
+    // Map loaded successfully - no need to override styles
   }, []);
 
   return (

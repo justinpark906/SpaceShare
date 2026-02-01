@@ -43,6 +43,9 @@ export function BookingSheet({
 
   if (!space) return null;
 
+  // Check if user is trying to book their own space
+  const isOwnSpace = space.isOwned;
+
   const spaceType = (space.type || "PARKING") as SpaceType;
   const totalPrice = space.pricePerHour * hours;
   const platformFee = totalPrice * 0.02;
@@ -163,36 +166,49 @@ export function BookingSheet({
           </div>
 
           {/* Confirm Button */}
-          <Button
-            className="w-full h-12 text-lg"
-            onClick={handleConfirmBooking}
-            disabled={isBooking}
-          >
-            {isBooking ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                Processing...
-              </span>
-            ) : (
-              `Confirm Booking - $${finalTotal.toFixed(2)}`
-            )}
-          </Button>
-
+          {isOwnSpace ? (
+            <div className="w-full">
+              <Button
+                className="w-full h-12 text-lg bg-gray-400 cursor-not-allowed"
+                disabled
+              >
+                Cannot Book Your Own Space
+              </Button>
+              <p className="text-xs text-gray-500 text-center mt-2">
+                This is your listing. You cannot book your own space.
+              </p>
+            </div>
+          ) : (
+            <Button
+              className="w-full h-12 text-lg"
+              onClick={handleConfirmBooking}
+              disabled={isBooking}
+            >
+              {isBooking ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                `Confirm Booking - $${finalTotal.toFixed(2)}`
+              )}
+            </Button>
+          )}
           {/* Security Note */}
           <p className="text-xs text-gray-500 text-center">
             🔒 Payment secured by Visa Direct. You won't be charged until you

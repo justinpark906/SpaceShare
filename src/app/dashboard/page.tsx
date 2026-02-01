@@ -30,6 +30,8 @@ export interface ListerData {
   neighborsHelped: number;
   co2SavedToday: number;
   co2SavedTotal: number;
+  totalSpaces: number;
+  activeBookings: number;
   recentTransactions: Array<{
     id: string;
     type: "earning";
@@ -70,9 +72,11 @@ export default function Dashboard() {
     }
 
     async function fetchDashboardData() {
+      if (!user) return;
+
       const supabase = createClient();
       const emptyData: ListerData = {
-        name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User",
+        name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
         totalEarningsToday: 0,
         totalEarningsMonth: 0,
         totalSavedForTaxes: 0,
@@ -82,6 +86,8 @@ export default function Dashboard() {
         neighborsHelped: 0,
         co2SavedToday: 0,
         co2SavedTotal: 0,
+        totalSpaces: 0,
+        activeBookings: 0,
         recentTransactions: [],
         chartData: [],
       };
@@ -133,6 +139,8 @@ export default function Dashboard() {
           bookings?.filter((b) => b.status === "COMPLETED" || b.status === "ACTIVE") ?? [];
         const pendingBookings =
           bookings?.filter((b) => b.payment_status === "PENDING") ?? [];
+        const activeBookingsCount =
+          bookings?.filter((b) => b.status === "ACTIVE").length ?? 0;
 
         const now = new Date();
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -216,6 +224,8 @@ export default function Dashboard() {
           neighborsHelped: uniqueRenters.size,
           co2SavedToday,
           co2SavedTotal: completedBookings.length * CO2_PER_RENTAL_LBS,
+          totalSpaces: spaceIds.length,
+          activeBookings: activeBookingsCount,
           recentTransactions,
           chartData: last7Days,
         });
