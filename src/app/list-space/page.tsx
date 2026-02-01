@@ -136,12 +136,102 @@ export default function ListSpacePage() {
   const [heightFt, setHeightFt] = useState("");
   const [instructions, setInstructions] = useState("");
 
+  // Address geocoding state
+  const [addressSuggestions, setAddressSuggestions] = useState<
+    Array<{
+      display_name: string;
+      lat: string;
+      lon: string;
+    }>
+  >([]);
+  const [selectedCoords, setSelectedCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [addressSearching, setAddressSearching] = useState(false);
+  const [addressValidated, setAddressValidated] = useState(false);
+
   // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/auth");
     }
   }, [user, authLoading, router]);
+
+  // Geocode address using Nominatim (OpenStreetMap)
+  const searchAddress = async (query: string) => {
+    if (query.length < 5) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    setAddressSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=5`,
+        {
+          headers: {
+            "User-Agent": "SpaceShare App",
+          },
+        },
+      );
+      const data = await response.json();
+      setAddressSuggestions(data);
+    } catch (err) {
+      console.error("Geocoding error:", err);
+      setAddressSuggestions([]);
+    } finally {
+      setAddressSearching(false);
+    }
+  };
+
+  // Debounce address search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (address && !addressValidated) {
+        searchAddress(`${address}, ${city}`);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [address, city, addressValidated]);
+
+  const selectAddress = (suggestion: {
+    display_name: string;
+    lat: string;
+    lon: string;
+  }) => {
+    // Parse the display name to extract street address and city
+    const parts = suggestion.display_name.split(", ");
+
+    // First two parts are usually "123" and "Street Name" - combine them for full address
+    // Or it could be "123 Street Name" as the first part
+    let streetAddress = parts[0];
+
+    // Check if the first part is just a number (house number)
+    if (/^\d+$/.test(parts[0]) && parts.length > 1) {
+      // Combine house number with street name
+      streetAddress = `${parts[0]} ${parts[1]}`;
+    }
+
+    setAddress(streetAddress);
+
+    // Try to find the city from the remaining parts
+    if (parts.length > 2) {
+      const cityPart = parts.find((p) =>
+        Object.keys(CITY_COORDS).some(
+          (c) => p.toLowerCase().includes(c) || c.includes(p.toLowerCase()),
+        ),
+      );
+      if (cityPart) setCity(cityPart);
+    }
+
+    setSelectedCoords({
+      lat: parseFloat(suggestion.lat),
+      lng: parseFloat(suggestion.lon),
+    });
+    setAddressValidated(true);
+    setAddressSuggestions([]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,19 +241,30 @@ export default function ListSpacePage() {
     setLoading(true);
 
     try {
-      // Get coordinates from city
-      const cityLower = city.toLowerCase().trim();
-      const coords = CITY_COORDS[cityLower];
+      let finalLat: number;
+      let finalLng: number;
 
-      if (!coords) {
-        setError("City not found. Please enter a major US city.");
-        setLoading(false);
-        return;
+      // Use validated coordinates if available, otherwise fall back to city
+      if (selectedCoords) {
+        finalLat = selectedCoords.lat;
+        finalLng = selectedCoords.lng;
+      } else {
+        // Fall back to city coordinates
+        const cityLower = city.toLowerCase().trim();
+        const coords = CITY_COORDS[cityLower];
+
+        if (!coords) {
+          setError(
+            "Please select a valid address from the suggestions, or enter a major US city.",
+          );
+          setLoading(false);
+          return;
+        }
+
+        // Add small random offset so spaces don't stack at city center
+        finalLat = coords.lat + (Math.random() - 0.5) * 0.02;
+        finalLng = coords.lng + (Math.random() - 0.5) * 0.02;
       }
-
-      // Add small random offset to coordinates so spaces don't stack
-      const latOffset = (Math.random() - 0.5) * 0.02;
-      const lngOffset = (Math.random() - 0.5) * 0.02;
 
       const { error: insertError } = await supabase.from("spaces").insert({
         owner_id: user.id,
@@ -174,8 +275,8 @@ export default function ListSpacePage() {
           spaceType === "PARKING" && parkingType ? parkingType : null,
         price_per_day: parseFloat(pricePerDay),
         max_rental_days: parseInt(maxRentalDays),
-        latitude: coords.lat + latOffset,
-        longitude: coords.lng + lngOffset,
+        latitude: finalLat,
+        longitude: finalLng,
         address,
         city: city.trim(),
         status: "AVAILABLE",
@@ -434,17 +535,75 @@ export default function ListSpacePage() {
                         className="py-6 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500"
                       />
                     </div>
-                    <div>
+                    <div className="relative">
                       <label className="block text-sm font-medium text-gray-300 mb-1">
                         Street Address
+                        {addressValidated && (
+                          <span className="ml-2 text-green-500 text-xs">
+                            <Check className="inline h-3 w-3" /> Verified
+                          </span>
+                        )}
                       </label>
                       <Input
                         placeholder="e.g., 123 Main St"
                         value={address}
-                        onChange={(e) => setAddress(e.target.value)}
+                        onChange={(e) => {
+                          setAddress(e.target.value);
+                          setAddressValidated(false);
+                          setSelectedCoords(null);
+                        }}
                         required
-                        className="py-6 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500"
+                        className={`py-6 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 ${
+                          addressValidated ? "border-green-500" : ""
+                        }`}
                       />
+                      {/* Address Suggestions Dropdown */}
+                      {addressSuggestions.length > 0 && !addressValidated && (
+                        <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {addressSuggestions.map((suggestion, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => selectAddress(suggestion)}
+                              className="w-full text-left px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 border-b border-gray-700 last:border-b-0"
+                            >
+                              <MapPin className="inline h-3 w-3 mr-2 text-green-500" />
+                              {suggestion.display_name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {addressSearching && (
+                        <div className="absolute right-3 top-10 text-gray-400">
+                          <svg
+                            className="animate-spin h-4 w-4"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                      {!addressValidated &&
+                        address.length > 3 &&
+                        !addressSearching && (
+                          <p className="text-xs text-yellow-500 mt-1">
+                            Start typing and select an address from the
+                            suggestions for accurate location
+                          </p>
+                        )}
                     </div>
                   </div>
 
