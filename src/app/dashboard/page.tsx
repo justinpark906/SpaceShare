@@ -84,10 +84,10 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600 text-white font-bold">
-              E
+              S
             </div>
             <span className="text-xl font-semibold text-gray-900">
-              EcoSquare
+              SpaceShare
             </span>
           </Link>
           <div className="flex items-center gap-4">

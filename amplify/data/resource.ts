@@ -19,9 +19,9 @@ const schema = a.schema({
       geofenceId: a.string(),
       isUnlocked: a.boolean().default(false),
       lastUnlockTime: a.datetime(),
-      // Owner relationship
+      // Owner relationship (renamed to avoid conflict with auth owner)
       ownerId: a.id().required(),
-      owner: a.belongsTo("Profile", "ownerId"),
+      spaceOwner: a.belongsTo("Profile", "ownerId"),
       // Bookings for this space
       bookings: a.hasMany("Booking", "spaceId"),
       // Transactions for this space
@@ -29,7 +29,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.authenticated().to(["read"]),
-      allow.owner().to(["create", "update", "delete"]),
+      allow.ownerDefinedIn("ownerId").to(["create", "update", "delete"]),
     ]),
 
   // Profile Model - user profiles with role (Lister or Renter)
@@ -43,13 +43,13 @@ const schema = a.schema({
       // Financial fields for Listers
       totalEarnings: a.float().default(0),
       totalSavedForTaxes: a.float().default(0),
-      visaCardToken: a.string(), // Tokenized card for Visa Direct payouts
-      capitalOneAccountId: a.string(), // For savings sweep
+      visaCardToken: a.string(),
+      capitalOneAccountId: a.string(),
       // Impact metrics
       totalRentalsHosted: a.integer().default(0),
-      co2Saved: a.float().default(0), // in pounds
+      co2Saved: a.float().default(0),
       // Spaces owned by this user (for Listers)
-      spaces: a.hasMany("Space", "ownerId"),
+      ownedSpaces: a.hasMany("Space", "ownerId"),
       // Bookings made by this user (for Renters)
       bookings: a.hasMany("Booking", "renterId"),
       // Transactions as lister
@@ -58,7 +58,7 @@ const schema = a.schema({
       renterTransactions: a.hasMany("Transaction", "renterId"),
     })
     .authorization((allow) => [
-      allow.owner().to(["create", "read", "update", "delete"]),
+      allow.ownerDefinedIn("userId").to(["create", "read", "update", "delete"]),
       allow.authenticated().to(["read"]),
     ]),
 
@@ -79,50 +79,38 @@ const schema = a.schema({
         "COMPLETED",
         "CANCELLED",
       ]),
-      // Link to transaction
       transactionId: a.id(),
       transaction: a.belongsTo("Transaction", "transactionId"),
     })
     .authorization((allow) => [
       allow.authenticated().to(["read"]),
-      allow.owner().to(["create", "update"]),
+      allow.ownerDefinedIn("renterId").to(["create", "update"]),
     ]),
 
   // Transaction Model - Escrow for payments
   Transaction: a
     .model({
-      // Amount details
-      amount: a.float().required(), // Total amount from renter
-      platformFee: a.float().required(), // 2% city improvement fee
-      listerPayout: a.float().required(), // 80% to lister
-      taxSweep: a.float().required(), // 20% of lister payout to savings
-
-      // Status tracking
+      amount: a.float().required(),
+      platformFee: a.float().required(),
+      listerPayout: a.float().required(),
+      taxSweep: a.float().required(),
       status: a.enum([
-        "PENDING", // Payment initiated, funds held
-        "COMPLETED", // Session ended, ready for disbursement
-        "DISBURSED", // Funds sent to lister via Visa Direct
-        "SWEPT", // Tax savings transferred via Capital One
-        "FAILED", // Something went wrong
-        "REFUNDED", // Refunded to renter
+        "PENDING",
+        "COMPLETED",
+        "DISBURSED",
+        "SWEPT",
+        "FAILED",
+        "REFUNDED",
       ]),
-
-      // Parties involved
       renterId: a.id().required(),
       renter: a.belongsTo("Profile", "renterId"),
       listerId: a.id().required(),
       lister: a.belongsTo("Profile", "listerId"),
       spaceId: a.id().required(),
       space: a.belongsTo("Space", "spaceId"),
-
-      // Booking reference
       bookings: a.hasMany("Booking", "transactionId"),
-
-      // External references
-      visaTransactionId: a.string(), // Visa Direct reference
-      capitalOneTransferId: a.string(), // Capital One transfer reference
-
-      // Timestamps
+      visaTransactionId: a.string(),
+      capitalOneTransferId: a.string(),
       initiatedAt: a.datetime(),
       completedAt: a.datetime(),
       disbursedAt: a.datetime(),
@@ -130,7 +118,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.authenticated().to(["read"]),
-      allow.owner().to(["create", "update"]),
+      allow.ownerDefinedIn("renterId").to(["create", "update"]),
     ]),
 });
 

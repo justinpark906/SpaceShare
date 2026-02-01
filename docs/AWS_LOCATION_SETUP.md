@@ -9,7 +9,7 @@ This guide walks you through setting up Amazon Location Service in the AWS Conso
 1. Go to **AWS Console → Amazon Location Service → Maps**
 2. Click **Create map**
 3. Configure:
-   - Name: `EcoSquareMap`
+   - Name: `SpaceShareMap`
    - Map style: `VectorEsriNavigation` (or your preferred style)
 4. Click **Create map**
 
@@ -18,7 +18,7 @@ This guide walks you through setting up Amazon Location Service in the AWS Conso
 1. Go to **Amazon Location Service → Place indexes**
 2. Click **Create place index**
 3. Configure:
-   - Name: `EcoSquarePlaceIndex`
+   - Name: `SpaceSharePlaceIndex`
    - Data provider: `Esri` (recommended for accuracy)
    - Data storage: `SingleUse` (for search without storing results)
 4. Click **Create place index**
@@ -30,7 +30,7 @@ This allows Marcus to type "123 Main St" and find spaces nearby.
 1. Go to **Amazon Location Service → Geofence collections**
 2. Click **Create geofence collection**
 3. Configure:
-   - Name: `EcoSquareGeofences`
+   - Name: `SpaceShareGeofences`
 4. Click **Create geofence collection**
 
 This is the "invisible fence" that detects when Marcus arrives at a parking spot.
@@ -40,7 +40,7 @@ This is the "invisible fence" that detects when Marcus arrives at a parking spot
 1. Go to **Amazon Location Service → API keys**
 2. Click **Create API key**
 3. Configure:
-   - Name: `EcoSquareAPIKey`
+   - Name: `SpaceShareAPIKey`
    - Resources: Select your map, place index, and geofence collection
    - Actions: Allow `geo:GetMap*`, `geo:SearchPlaceIndex*`, `geo:GetGeofence*`
    - Expiration: Set appropriate expiration (e.g., 1 year)
@@ -54,9 +54,9 @@ Add these to your `.env.local` file:
 ```env
 NEXT_PUBLIC_AWS_REGION=us-east-1
 NEXT_PUBLIC_AWS_LOCATION_API_KEY=your-api-key-here
-NEXT_PUBLIC_AWS_LOCATION_MAP_NAME=EcoSquareMap
-NEXT_PUBLIC_AWS_LOCATION_PLACE_INDEX=EcoSquarePlaceIndex
-NEXT_PUBLIC_AWS_LOCATION_GEOFENCE_COLLECTION=EcoSquareGeofences
+NEXT_PUBLIC_AWS_LOCATION_MAP_NAME=SpaceShareMap
+NEXT_PUBLIC_AWS_LOCATION_PLACE_INDEX=SpaceSharePlaceIndex
+NEXT_PUBLIC_AWS_LOCATION_GEOFENCE_COLLECTION=SpaceShareGeofences
 ```
 
 ### Architecture Notes

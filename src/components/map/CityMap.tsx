@@ -1,28 +1,49 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import Map, { NavigationControl } from "react-map-gl/maplibre";
+import { useState, useEffect, useCallback, useRef } from "react";
+import Map, { NavigationControl, MapRef } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { SpaceMarker } from "./SpaceMarker";
 import { BookingSheet } from "./BookingSheet";
 import { ActiveSession } from "./ActiveSession";
-import {
-  getClient,
-  isAmplifyConfigured,
-  type Space,
-} from "@/lib/amplify-client";
+import { createClient, DbSpace } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Default center (San Francisco - change to your city)
+// Default center (United States)
 const DEFAULT_CENTER = {
-  longitude: -122.4194,
-  latitude: 37.7749,
+  longitude: -98.5795,
+  latitude: 39.8283,
 };
 
-// For demo without AWS Location Service, use OpenStreetMap tiles
+// Map style - using Carto's Voyager for a clean look
 const MAP_STYLE =
-  "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+  "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 
-export function CityMap() {
+// Simplified Space type for the map
+export interface Space {
+  id: string;
+  name: string;
+  description: string | null;
+  type: "PARKING" | "STORAGE" | "GARDEN";
+  pricePerHour: number;
+  latitude: number;
+  longitude: number;
+  address: string;
+  status: string;
+  imageUrl: string | null;
+  ownerId: string;
+  createdAt: string;
+  updatedAt: string;
+  isOwned?: boolean; // Whether current user owns this space
+}
+
+interface CityMapProps {
+  initialCenter?: { lat: number; lng: number; zoom: number } | null;
+}
+
+export function CityMap({ initialCenter }: CityMapProps) {
+  const mapRef = useRef<MapRef>(null);
+  const { user } = useAuth();
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,59 +60,79 @@ export function CityMap() {
   const fetchSpaces = useCallback(async () => {
     try {
       setLoading(true);
+      const supabase = createClient();
 
-      // Check if Amplify backend is configured
-      if (!isAmplifyConfigured()) {
-        console.log("Amplify not configured, using mock data");
-        setSpaces(getMockSpaces());
+      // Check if Supabase is configured
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        console.log("Supabase not configured, using mock data");
+        setSpaces(getMockSpaces(user?.id));
         setError(null);
         return;
       }
 
-      const client = getClient();
-      const { data, errors } = await client.models.Space.list({
-        filter: {
-          status: { eq: "AVAILABLE" },
-        },
-      });
+      const { data, error: fetchError } = await supabase
+        .from("spaces")
+        .select("*")
+        .eq("status", "AVAILABLE");
 
-      if (errors) {
-        console.error("Error fetching spaces:", errors);
-        setError("Failed to load spaces");
+      if (fetchError) {
+        console.error("Error fetching spaces:", fetchError);
+        // Fall back to mock data
+        setSpaces(getMockSpaces(user?.id));
+        setError(null);
         return;
       }
 
-      // Map Amplify data to our simplified Space type
-      const mappedSpaces: Space[] = (data || []).map((item) => ({
+      // Map Supabase data to our Space type
+      const mappedSpaces: Space[] = (data || []).map((item: DbSpace) => ({
         id: item.id,
         name: item.name,
         description: item.description,
         type: item.type,
-        pricePerHour: item.pricePerHour,
+        pricePerHour: item.price_per_hour,
         latitude: item.latitude,
         longitude: item.longitude,
         address: item.address,
         status: item.status,
-        imageUrl: item.imageUrl,
-        ownerId: item.ownerId,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
+        imageUrl: item.image_url,
+        ownerId: item.owner_id,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        isOwned: user?.id === item.owner_id,
       }));
-      setSpaces(mappedSpaces);
+
+      // If we have data from Supabase, use it; otherwise fall back to mock
+      if (mappedSpaces.length > 0) {
+        setSpaces(mappedSpaces);
+      } else {
+        // Mix mock data with any real data for demo
+        setSpaces(getMockSpaces(user?.id));
+      }
       setError(null);
     } catch (err) {
       console.error("Error fetching spaces:", err);
-      // For demo purposes, show mock data if Amplify isn't configured
-      setSpaces(getMockSpaces());
+      // For demo purposes, show mock data if Supabase isn't configured
+      setSpaces(getMockSpaces(user?.id));
       setError(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchSpaces();
   }, [fetchSpaces]);
+
+  // Fly to searched city when initialCenter changes
+  useEffect(() => {
+    if (initialCenter && mapRef.current) {
+      mapRef.current.flyTo({
+        center: [initialCenter.lng, initialCenter.lat],
+        zoom: initialCenter.zoom,
+        duration: 2000,
+      });
+    }
+  }, [initialCenter]);
 
   const handleMarkerClick = (space: Space) => {
     setSelectedSpace(space);
@@ -117,13 +158,19 @@ export function CityMap() {
   return (
     <div className="relative h-full w-full">
       <Map
+        ref={mapRef}
         initialViewState={{
           longitude: DEFAULT_CENTER.longitude,
           latitude: DEFAULT_CENTER.latitude,
-          zoom: 13,
+          zoom: 4,
+          pitch: 0,
+          bearing: 0,
         }}
         style={{ width: "100%", height: "100%" }}
         mapStyle={MAP_STYLE}
+        maxZoom={18}
+        minZoom={2}
+        projection={{ type: "globe" } as any}
         onClick={() => {
           if (!activeSession) {
             setSelectedSpace(null);
@@ -139,6 +186,7 @@ export function CityMap() {
             space={space}
             onClick={handleMarkerClick}
             isSelected={selectedSpace?.id === space.id}
+            isOwned={space.isOwned}
           />
         ))}
       </Map>
@@ -194,6 +242,12 @@ export function CityMap() {
               <div className="h-4 w-4 rounded-full bg-amber-500" />
               <span className="text-xs text-gray-600">Garden</span>
             </div>
+            {user && (
+              <div className="flex items-center gap-2 mt-2 pt-2 border-t">
+                <div className="h-4 w-4 rounded-full bg-purple-500 ring-2 ring-purple-300" />
+                <span className="text-xs text-gray-600">Your spaces</span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -222,8 +276,8 @@ export function CityMap() {
   );
 }
 
-// Mock data for development before Amplify sandbox is running
-function getMockSpaces(): Space[] {
+// Mock data for development
+function getMockSpaces(currentUserId?: string): Space[] {
   return [
     {
       id: "mock-1",
@@ -240,6 +294,7 @@ function getMockSpaces(): Space[] {
       ownerId: "sarah_123",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isOwned: false,
     },
     {
       id: "mock-2",
@@ -256,6 +311,7 @@ function getMockSpaces(): Space[] {
       ownerId: "sarah_123",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isOwned: false,
     },
     {
       id: "mock-3",
@@ -272,6 +328,7 @@ function getMockSpaces(): Space[] {
       ownerId: "sarah_123",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isOwned: false,
     },
     {
       id: "mock-4",
@@ -288,6 +345,7 @@ function getMockSpaces(): Space[] {
       ownerId: "owner_456",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isOwned: false,
     },
     {
       id: "mock-5",
@@ -304,6 +362,7 @@ function getMockSpaces(): Space[] {
       ownerId: "owner_789",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isOwned: false,
     },
-  ] as Space[];
+  ];
 }

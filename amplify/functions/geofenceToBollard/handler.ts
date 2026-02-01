@@ -1,6 +1,9 @@
-import { IoTDataPlaneClient, PublishCommand } from '@aws-sdk/client-iot-data-plane';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  IoTDataPlaneClient,
+  PublishCommand,
+} from "@aws-sdk/client-iot-data-plane";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 /**
  * GeofenceToBollard Lambda
@@ -17,27 +20,31 @@ import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
  * Also updates DynamoDB for the "hack" shortcut (frontend polling)
  */
 
-const iotClient = new IoTDataPlaneClient({ region: process.env.AWS_REGION || 'us-east-1' });
-const ddbClient = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const iotClient = new IoTDataPlaneClient({
+  region: process.env.AWS_REGION || "us-east-1",
+});
+const ddbClient = new DynamoDBClient({
+  region: process.env.AWS_REGION || "us-east-1",
+});
 const docClient = DynamoDBDocumentClient.from(ddbClient);
 
 // Map geofence IDs to IoT topics
 const GEOFENCE_TO_TOPIC: Record<string, string> = {
-  'space_01': 'ecosquare/spaces/01/control',
-  'space_02': 'ecosquare/spaces/02/control',
-  'space_03': 'ecosquare/spaces/03/control',
+  space_01: "spaceshare/spaces/01/control",
+  space_02: "spaceshare/spaces/02/control",
+  space_03: "spaceshare/spaces/03/control",
 };
 
 interface GeofenceEvent {
   version: string;
   id: string;
-  'detail-type': string;
+  "detail-type": string;
   source: string;
   account: string;
   time: string;
   region: string;
   detail: {
-    EventType: 'ENTER' | 'EXIT';
+    EventType: "ENTER" | "EXIT";
     GeofenceId: string;
     DeviceId: string;
     SampleTime: string;
@@ -45,12 +52,16 @@ interface GeofenceEvent {
   };
 }
 
-export const handler = async (event: GeofenceEvent): Promise<{ statusCode: number; body: string }> => {
-  console.log('Received geofence event:', JSON.stringify(event, null, 2));
+export const handler = async (
+  event: GeofenceEvent,
+): Promise<{ statusCode: number; body: string }> => {
+  console.log("Received geofence event:", JSON.stringify(event, null, 2));
 
   const { EventType, GeofenceId, DeviceId, Position } = event.detail;
 
-  console.log(`Event: ${EventType} | Geofence: ${GeofenceId} | Device: ${DeviceId}`);
+  console.log(
+    `Event: ${EventType} | Geofence: ${GeofenceId} | Device: ${DeviceId}`,
+  );
   console.log(`Position: ${Position[0]}, ${Position[1]}`);
 
   // Determine the IoT topic for this geofence
@@ -65,7 +76,7 @@ export const handler = async (event: GeofenceEvent): Promise<{ statusCode: numbe
   }
 
   // Determine command based on event type
-  const command = EventType === 'ENTER' ? 'UNLOCK' : 'LOCK';
+  const command = EventType === "ENTER" ? "UNLOCK" : "LOCK";
 
   try {
     // 1. Publish to IoT topic (for real IoT devices / simulator)
@@ -77,7 +88,7 @@ export const handler = async (event: GeofenceEvent): Promise<{ statusCode: numbe
     });
 
     // 2. Update DynamoDB (for frontend polling - "hack" shortcut)
-    await updateSpaceStatus(GeofenceId, command === 'UNLOCK');
+    await updateSpaceStatus(GeofenceId, command === "UNLOCK");
 
     console.log(`Successfully sent ${command} command for ${GeofenceId}`);
 
@@ -90,34 +101,39 @@ export const handler = async (event: GeofenceEvent): Promise<{ statusCode: numbe
       }),
     };
   } catch (error) {
-    console.error('Error processing geofence event:', error);
+    console.error("Error processing geofence event:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to process geofence event' }),
+      body: JSON.stringify({ error: "Failed to process geofence event" }),
     };
   }
 };
 
 async function publishToIoT(topic: string, payload: object): Promise<void> {
   console.log(`Publishing to IoT topic: ${topic}`);
-  console.log('Payload:', JSON.stringify(payload));
+  console.log("Payload:", JSON.stringify(payload));
 
   try {
-    await iotClient.send(new PublishCommand({
-      topic,
-      payload: Buffer.from(JSON.stringify(payload)),
-      qos: 1,
-    }));
-    console.log('IoT publish successful');
+    await iotClient.send(
+      new PublishCommand({
+        topic,
+        payload: Buffer.from(JSON.stringify(payload)),
+        qos: 1,
+      }),
+    );
+    console.log("IoT publish successful");
   } catch (error) {
-    console.error('IoT publish failed:', error);
+    console.error("IoT publish failed:", error);
     // Don't throw - we still want to update DynamoDB
   }
 }
 
-async function updateSpaceStatus(geofenceId: string, isUnlocked: boolean): Promise<void> {
+async function updateSpaceStatus(
+  geofenceId: string,
+  isUnlocked: boolean,
+): Promise<void> {
   // Extract space ID from geofence ID (e.g., "space_01" -> "01")
-  const spaceId = geofenceId.replace('space_', '');
+  const spaceId = geofenceId.replace("space_", "");
 
   console.log(`Updating space ${spaceId} isUnlocked=${isUnlocked}`);
 
@@ -126,22 +142,24 @@ async function updateSpaceStatus(geofenceId: string, isUnlocked: boolean): Promi
   const tableName = process.env.SPACE_TABLE_NAME;
 
   if (!tableName) {
-    console.warn('SPACE_TABLE_NAME not set, skipping DynamoDB update');
+    console.warn("SPACE_TABLE_NAME not set, skipping DynamoDB update");
     return;
   }
 
   try {
-    await docClient.send(new UpdateCommand({
-      TableName: tableName,
-      Key: { id: spaceId },
-      UpdateExpression: 'SET isUnlocked = :unlocked, lastUpdated = :time',
-      ExpressionAttributeValues: {
-        ':unlocked': isUnlocked,
-        ':time': new Date().toISOString(),
-      },
-    }));
-    console.log('DynamoDB update successful');
+    await docClient.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: { id: spaceId },
+        UpdateExpression: "SET isUnlocked = :unlocked, lastUpdated = :time",
+        ExpressionAttributeValues: {
+          ":unlocked": isUnlocked,
+          ":time": new Date().toISOString(),
+        },
+      }),
+    );
+    console.log("DynamoDB update successful");
   } catch (error) {
-    console.error('DynamoDB update failed:', error);
+    console.error("DynamoDB update failed:", error);
   }
 }

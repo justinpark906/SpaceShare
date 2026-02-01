@@ -16,7 +16,7 @@ This guide walks you through setting up the IoT and Geofencing infrastructure.
 
 ### Step 3: Create and Attach Policy
 1. Click **Create policy**
-2. Name: `EcoSquareBollardPolicy`
+2. Name: `SpaceShareBollardPolicy`
 3. Policy document (JSON):
 ```json
 {
@@ -74,11 +74,11 @@ You should see "Waiting for UNLOCK command..." - leave this terminal open!
 ### Step 1: Create Geofence Collection
 1. Go to **AWS Console → Amazon Location Service → Geofence collections**
 2. Click **Create geofence collection**
-3. Name: `EcoSquareGeofences`
+3. Name: `SpaceShareGeofences`
 4. Click **Create**
 
 ### Step 2: Add a Geofence
-1. Click on `EcoSquareGeofences`
+1. Click on `SpaceShareGeofences`
 2. Click **Create geofence**
 3. Geofence ID: `space_01`
 4. Draw a circle around your test coordinates:
@@ -88,13 +88,13 @@ You should see "Waiting for UNLOCK command..." - leave this terminal open!
 
 ### Step 3: Create Tracker
 1. Go to **Trackers** → **Create tracker**
-2. Name: `EcoSquareTracker`
+2. Name: `SpaceShareTracker`
 3. Click **Create tracker**
 
 ### Step 4: Link Tracker to Geofence Collection
-1. Go to your tracker `EcoSquareTracker`
+1. Go to your tracker `SpaceShareTracker`
 2. Click **Link geofence collection**
-3. Select `EcoSquareGeofences`
+3. Select `SpaceShareGeofences`
 4. Click **Link**
 
 ---
@@ -123,7 +123,7 @@ exports.handler = async (event) => {
   const command = EventType === 'ENTER' ? 'UNLOCK' : 'LOCK';
   
   // Map geofence to IoT topic
-  const topic = `ecosquare/spaces/${GeofenceId.replace('space_', '')}/control`;
+  const topic = `spaceshare/spaces/${GeofenceId.replace('space_', '')}/control`;
   
   await iotClient.send(new PublishCommand({
     topic,

@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import type { Space } from '@/lib/amplify-client';
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import type { Space } from "./CityMap";
 
 interface BookingSheetProps {
   space: Space | null;
@@ -18,27 +18,32 @@ interface BookingSheetProps {
   onBook: (space: Space, hours: number) => void;
 }
 
-type SpaceType = 'PARKING' | 'STORAGE' | 'GARDEN';
+type SpaceType = "PARKING" | "STORAGE" | "GARDEN";
 
 const typeLabels = {
-  PARKING: 'Parking Spot',
-  STORAGE: 'Storage Space',
-  GARDEN: 'Garden Plot',
+  PARKING: "Parking Spot",
+  STORAGE: "Storage Space",
+  GARDEN: "Garden Plot",
 };
 
 const typeEmojis = {
-  PARKING: '🚗',
-  STORAGE: '📦',
-  GARDEN: '🌱',
+  PARKING: "🚗",
+  STORAGE: "📦",
+  GARDEN: "🌱",
 };
 
-export function BookingSheet({ space, isOpen, onClose, onBook }: BookingSheetProps) {
+export function BookingSheet({
+  space,
+  isOpen,
+  onClose,
+  onBook,
+}: BookingSheetProps) {
   const [hours, setHours] = useState(1);
   const [isBooking, setIsBooking] = useState(false);
 
   if (!space) return null;
 
-  const spaceType = (space.type || 'PARKING') as SpaceType;
+  const spaceType = (space.type || "PARKING") as SpaceType;
   const totalPrice = space.pricePerHour * hours;
   const platformFee = totalPrice * 0.02;
   const finalTotal = totalPrice + platformFee;
@@ -48,12 +53,12 @@ export function BookingSheet({ space, isOpen, onClose, onBook }: BookingSheetPro
 
     try {
       // Call the payment initiation API
-      const response = await fetch('/api/pay/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/pay/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           spaceId: space.id,
-          renterId: 'marcus_demo', // Demo user
+          renterId: "marcus_demo", // Demo user
           listerId: space.ownerId,
           amount: finalTotal,
           hours,
@@ -64,7 +69,7 @@ export function BookingSheet({ space, isOpen, onClose, onBook }: BookingSheetPro
         onBook(space, hours);
       }
     } catch (error) {
-      console.error('Booking error:', error);
+      console.error("Booking error:", error);
     } finally {
       setIsBooking(false);
     }
@@ -79,7 +84,7 @@ export function BookingSheet({ space, isOpen, onClose, onBook }: BookingSheetPro
             {space.name}
           </SheetTitle>
           <SheetDescription>
-            {space.address || 'Location available'}
+            {space.address || "Location available"}
           </SheetDescription>
         </SheetHeader>
 
@@ -113,7 +118,9 @@ export function BookingSheet({ space, isOpen, onClose, onBook }: BookingSheetPro
               >
                 -
               </Button>
-              <span className="text-2xl font-bold w-16 text-center">{hours}h</span>
+              <span className="text-2xl font-bold w-16 text-center">
+                {hours}h
+              </span>
               <Button
                 variant="outline"
                 size="sm"
@@ -129,7 +136,8 @@ export function BookingSheet({ space, isOpen, onClose, onBook }: BookingSheetPro
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">
-                ${space.pricePerHour.toFixed(2)} x {hours} hour{hours > 1 ? 's' : ''}
+                ${space.pricePerHour.toFixed(2)} x {hours} hour
+                {hours > 1 ? "s" : ""}
               </span>
               <span>${totalPrice.toFixed(2)}</span>
             </div>
@@ -163,8 +171,20 @@ export function BookingSheet({ space, isOpen, onClose, onBook }: BookingSheetPro
             {isBooking ? (
               <span className="flex items-center gap-2">
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
                 Processing...
               </span>
@@ -175,7 +195,8 @@ export function BookingSheet({ space, isOpen, onClose, onBook }: BookingSheetPro
 
           {/* Security Note */}
           <p className="text-xs text-gray-500 text-center">
-            🔒 Payment secured by Visa Direct. You won't be charged until you arrive.
+            🔒 Payment secured by Visa Direct. You won't be charged until you
+            arrive.
           </p>
         </div>
       </SheetContent>

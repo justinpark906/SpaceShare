@@ -1,12 +1,13 @@
 "use client";
 
 import { Marker } from "react-map-gl/maplibre";
-import type { Space } from "@/lib/amplify-client";
+import type { Space } from "./CityMap";
 
 interface SpaceMarkerProps {
   space: Space;
   onClick?: (space: Space) => void;
   isSelected?: boolean;
+  isOwned?: boolean;
 }
 
 type SpaceType = "PARKING" | "STORAGE" | "GARDEN";
@@ -16,6 +17,9 @@ const typeColors = {
   STORAGE: "#10B981", // green
   GARDEN: "#F59E0B", // amber
 };
+
+// Purple color for owned spaces
+const ownedColor = "#8B5CF6";
 
 // Custom SVG icons for each space type
 const typeIcons = {
@@ -36,9 +40,15 @@ const typeIcons = {
   ),
 };
 
-export function SpaceMarker({ space, onClick, isSelected }: SpaceMarkerProps) {
+export function SpaceMarker({
+  space,
+  onClick,
+  isSelected,
+  isOwned,
+}: SpaceMarkerProps) {
   const spaceType = (space.type || "PARKING") as SpaceType;
-  const color = typeColors[spaceType];
+  // Use purple for owned spaces, otherwise use type color
+  const color = isOwned ? ownedColor : typeColors[spaceType];
   const icon = typeIcons[spaceType];
 
   return (
@@ -61,7 +71,7 @@ export function SpaceMarker({ space, onClick, isSelected }: SpaceMarkerProps) {
         <div
           className={`relative flex items-center justify-center rounded-full text-white shadow-lg ${
             isSelected ? "w-12 h-12" : "w-10 h-10"
-          }`}
+          } ${isOwned ? "ring-4 ring-purple-300" : ""}`}
           style={{ backgroundColor: color }}
         >
           {icon}
@@ -80,11 +90,19 @@ export function SpaceMarker({ space, onClick, isSelected }: SpaceMarkerProps) {
         />
         {/* Price tag */}
         <div
-          className="absolute -top-1 -right-1 bg-white rounded-full px-1.5 py-0.5 text-xs font-bold shadow-md"
+          className={`absolute -top-1 -right-1 bg-white rounded-full px-1.5 py-0.5 text-xs font-bold shadow-md ${
+            isOwned ? "ring-2 ring-purple-300" : ""
+          }`}
           style={{ color }}
         >
           ${space.pricePerHour}
         </div>
+        {/* "Yours" badge for owned spaces */}
+        {isOwned && (
+          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+            YOURS
+          </div>
+        )}
       </div>
     </Marker>
   );
