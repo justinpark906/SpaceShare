@@ -10,59 +10,112 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { EarningsChart } from "@/components/EarningsChart";
-import { AdminPanel } from "@/components/AdminPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { createClient } from "@/lib/supabase";
 import Link from "next/link";
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  DollarSign,
+  Plus,
+  Package,
+  Car,
+  Flower2,
+  ChevronRight,
+  User,
+} from "lucide-react";
 
-const CO2_PER_RENTAL_LBS = 0.6;
-const TAX_SAVINGS_RATE = 0.2;
-
-export interface ListerData {
-  name: string;
-  totalEarningsToday: number;
-  totalEarningsMonth: number;
-  totalSavedForTaxes: number;
-  taxVaultBalance: number;
-  pendingPayouts: number;
-  totalRentalsHosted: number;
-  neighborsHelped: number;
-  co2SavedToday: number;
-  co2SavedTotal: number;
-  totalSpaces: number;
-  activeBookings: number;
-  recentTransactions: Array<{
-    id: string;
-    type: "earning";
-    amount: number;
-    description: string;
-    time: string;
-    status: string;
-  }>;
-  chartData: Array<{ date: string; earnings: number }>;
+interface Booking {
+  id: string;
+  space_id: string;
+  start_date: string;
+  end_date: string;
+  total_days: number;
+  total_price: number;
+  status: string;
+  space: {
+    name: string;
+    type: string;
+    address: string;
+    city: string;
+    price_per_day: number;
+  } | null;
+  owner?: {
+    full_name: string | null;
+    email: string;
+  } | null;
 }
 
-function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
+interface Space {
+  id: string;
+  name: string;
+  type: string;
+  price_per_day: number;
+  address: string;
+  city: string;
+  status: string;
+  max_rental_days: number;
+  created_at: string;
+  bookings: {
+    id: string;
+    start_date: string;
+    end_date: string;
+    total_days: number;
+    total_price: number;
+    status: string;
+    renter: {
+      full_name: string | null;
+      email: string;
+    } | null;
+  }[];
+}
 
-  if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffHours < 24) return `${diffHours} hours ago`;
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return date.toLocaleDateString();
+const typeIcons: Record<string, React.ReactNode> = {
+  PARKING: <Car className="h-5 w-5" />,
+  STORAGE: <Package className="h-5 w-5" />,
+  GARDEN: <Flower2 className="h-5 w-5" />,
+};
+
+const typeColors: Record<string, string> = {
+  PARKING: "bg-blue-100 text-blue-700",
+  STORAGE: "bg-amber-100 text-amber-700",
+  GARDEN: "bg-green-100 text-green-700",
+};
+
+const statusColors: Record<string, string> = {
+  PENDING: "bg-yellow-100 text-yellow-700",
+  CONFIRMED: "bg-blue-100 text-blue-700",
+  ACTIVE: "bg-green-100 text-green-700",
+  COMPLETED: "bg-gray-100 text-gray-700",
+  CANCELLED: "bg-red-100 text-red-700",
+};
+
+function getDaysRemaining(endDate: string): number {
+  const end = new Date(endDate);
+  const now = new Date();
+  const diffTime = end.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return Math.max(0, diffDays);
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function Dashboard() {
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
-  const [data, setData] = useState<ListerData | null>(null);
+  const [myBookings, setMyBookings] = useState<Booking[]>([]);
+  const [myListings, setMyListings] = useState<Space[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"earnings" | "impact">("earnings");
+  const [activeTab, setActiveTab] = useState<"bookings" | "listings">(
+    "bookings",
+  );
 
   useEffect(() => {
     if (authLoading) return;
@@ -71,175 +124,91 @@ export default function Dashboard() {
       return;
     }
 
-    async function fetchDashboardData() {
+    async function fetchData() {
       if (!user) return;
-
       const supabase = createClient();
-      const emptyData: ListerData = {
-        name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
-        totalEarningsToday: 0,
-        totalEarningsMonth: 0,
-        totalSavedForTaxes: 0,
-        taxVaultBalance: 0,
-        pendingPayouts: 0,
-        totalRentalsHosted: 0,
-        neighborsHelped: 0,
-        co2SavedToday: 0,
-        co2SavedTotal: 0,
-        totalSpaces: 0,
-        activeBookings: 0,
-        recentTransactions: [],
-        chartData: [],
-      };
 
       try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", user.id)
-          .single();
-
-        const displayName =
-          profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
-
-        const { data: mySpaces } = await supabase
-          .from("spaces")
-          .select("id")
-          .eq("owner_id", user.id);
-
-        const spaceIds = mySpaces?.map((s) => s.id) ?? [];
-        if (spaceIds.length === 0) {
-          setData({
-            ...emptyData,
-            name: displayName,
-          });
-          setLoading(false);
-          return;
-        }
-
+        // Fetch bookings where I am the renter
         const { data: bookings } = await supabase
           .from("bookings")
           .select(
             `
             id,
+            space_id,
+            start_date,
+            end_date,
+            total_days,
             total_price,
             status,
-            payment_status,
-            start_time,
-            created_at,
-            renter_id,
-            space:spaces(name, type),
-            renter:profiles!renter_id(full_name)
-          `
+            space:spaces (
+              name,
+              type,
+              address,
+              city,
+              price_per_day,
+              owner_id
+            )
+          `,
           )
-          .in("space_id", spaceIds)
+          .eq("renter_id", user.id)
           .order("created_at", { ascending: false });
 
-        const completedBookings =
-          bookings?.filter((b) => b.status === "COMPLETED" || b.status === "ACTIVE") ?? [];
-        const pendingBookings =
-          bookings?.filter((b) => b.payment_status === "PENDING") ?? [];
-        const activeBookingsCount =
-          bookings?.filter((b) => b.status === "ACTIVE").length ?? 0;
+        // Map bookings data - Supabase returns single objects for relations, not arrays
+        const mappedBookings: Booking[] = (bookings || []).map((b: any) => ({
+          ...b,
+          space: Array.isArray(b.space) ? b.space[0] : b.space,
+        }));
+        setMyBookings(mappedBookings);
 
-        const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-        const todayEarnings = completedBookings
-          .filter((b) => new Date(b.start_time) >= startOfToday)
-          .reduce((sum, b) => sum + Number(b.total_price), 0);
-
-        const monthEarnings = completedBookings
-          .filter((b) => new Date(b.start_time) >= startOfMonth)
-          .reduce((sum, b) => sum + Number(b.total_price), 0);
-
-        const totalEarnings = completedBookings.reduce(
-          (sum, b) => sum + Number(b.total_price),
-          0
-        );
-        const taxVaultBalance = totalEarnings * TAX_SAVINGS_RATE;
-        const todayRentals = completedBookings.filter(
-          (b) => new Date(b.start_time) >= startOfToday
-        ).length;
-        const co2SavedToday = todayRentals * CO2_PER_RENTAL_LBS;
-
-        const uniqueRenters = new Set(
-          completedBookings.map((b) => b.renter_id).filter(Boolean)
-        );
-
-        const pendingPayouts = pendingBookings.reduce(
-          (sum, b) => sum + Number(b.total_price),
-          0
-        );
-
-        const recentTransactions = (bookings ?? []).slice(0, 10).map((b) => {
-          const space = b.space as { name?: string; type?: string } | null;
-          const renter = b.renter as { full_name?: string } | null;
-          const renterName = renter?.full_name || "Guest";
-          const spaceLabel = space ? `${space.type} - ${space.name}` : "Space";
-          const firstName = renterName.split(" ")[0] || "Guest";
-          return {
-            id: b.id,
-            type: "earning" as const,
-            amount: Number(b.total_price),
-            description: `${spaceLabel} - ${firstName}`,
-            time: formatTimeAgo(new Date(b.created_at)),
-            status: b.payment_status?.toLowerCase() ?? "pending",
-          };
-        });
-
-        const last7Days: { date: string; earnings: number }[] = [];
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date(now);
-          d.setDate(d.getDate() - i);
-          const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-          const dayEnd = new Date(dayStart);
-          dayEnd.setDate(dayEnd.getDate() + 1);
-          const dayEarnings = completedBookings
-            .filter(
-              (b) =>
-                new Date(b.start_time) >= dayStart &&
-                new Date(b.start_time) < dayEnd
+        // Fetch spaces I own with their bookings
+        const { data: spaces } = await supabase
+          .from("spaces")
+          .select(
+            `
+            id,
+            name,
+            type,
+            price_per_day,
+            address,
+            city,
+            status,
+            max_rental_days,
+            created_at,
+            bookings (
+              id,
+              start_date,
+              end_date,
+              total_days,
+              total_price,
+              status,
+              renter:profiles!renter_id (
+                full_name,
+                email
+              )
             )
-            .reduce((sum, b) => sum + Number(b.total_price), 0);
-          last7Days.push({
-            date: dayStart.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            }),
-            earnings: dayEarnings,
-          });
-        }
+          `,
+          )
+          .eq("owner_id", user.id)
+          .order("created_at", { ascending: false });
 
-        setData({
-          name: displayName,
-          totalEarningsToday: todayEarnings,
-          totalEarningsMonth: monthEarnings,
-          totalSavedForTaxes: taxVaultBalance,
-          taxVaultBalance,
-          pendingPayouts,
-          totalRentalsHosted: completedBookings.length,
-          neighborsHelped: uniqueRenters.size,
-          co2SavedToday,
-          co2SavedTotal: completedBookings.length * CO2_PER_RENTAL_LBS,
-          totalSpaces: spaceIds.length,
-          activeBookings: activeBookingsCount,
-          recentTransactions,
-          chartData: last7Days,
-        });
-      } catch {
-        setData({
-          ...emptyData,
-          name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User",
-        });
+        // Map spaces data - handle nested relations
+        const mappedSpaces: Space[] = (spaces || []).map((s: any) => ({
+          ...s,
+          bookings: (s.bookings || []).map((b: any) => ({
+            ...b,
+            renter: Array.isArray(b.renter) ? b.renter[0] : b.renter,
+          })),
+        }));
+        setMyListings(mappedSpaces);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchDashboardData();
+    fetchData();
   }, [user, authLoading, router]);
 
   const handleSignOut = async () => {
@@ -247,438 +216,446 @@ export default function Dashboard() {
     router.push("/");
   };
 
-  if (authLoading || loading || !data) {
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Loading dashboard...</div>
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-400">Loading dashboard...</div>
       </div>
     );
   }
 
+  const activeBookings = myBookings.filter(
+    (b) => b.status === "ACTIVE" || b.status === "CONFIRMED",
+  );
+  const totalEarnings = myListings.reduce((sum, listing) => {
+    return (
+      sum +
+      listing.bookings
+        .filter((b) => b.status === "COMPLETED" || b.status === "ACTIVE")
+        .reduce((s, b) => s + b.total_price, 0)
+    );
+  }, 0);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-green-950">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-green-950">
       {/* Header */}
-      <header className="bg-gray-900/50 backdrop-blur-sm border-b border-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-800">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600 text-white font-bold">
               S
             </div>
-            <span className="text-xl font-semibold text-white">
-              SpaceShare
-            </span>
+            <span className="text-xl font-semibold text-white">SpaceShare</span>
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-300">Welcome, {data.name}!</span>
-            <Button variant="outline" size="sm" onClick={handleSignOut}>
+            <span className="text-sm text-gray-400">{user?.email}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSignOut}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
               Sign Out
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Lister Dashboard</h1>
-          <p className="text-gray-200 mt-1">
-            Track your earnings and community impact
+          <h1 className="text-3xl font-bold text-white">My Dashboard</h1>
+          <p className="text-gray-400 mt-1">
+            Manage your bookings and listings
           </p>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4">
+              <p className="text-gray-400 text-sm">Active Bookings</p>
+              <p className="text-2xl font-bold text-white">
+                {activeBookings.length}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4">
+              <p className="text-gray-400 text-sm">My Listings</p>
+              <p className="text-2xl font-bold text-white">
+                {myListings.length}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4">
+              <p className="text-gray-400 text-sm">Total Earned</p>
+              <p className="text-2xl font-bold text-green-500">
+                ${totalEarnings.toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-4">
+              <p className="text-gray-400 text-sm">Active Renters</p>
+              <p className="text-2xl font-bold text-white">
+                {myListings.reduce(
+                  (sum, l) =>
+                    sum +
+                    l.bookings.filter((b) => b.status === "ACTIVE").length,
+                  0,
+                )}
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Tab Navigation */}
         <div className="flex gap-2 mb-6">
           <Button
-            variant={activeTab === "earnings" ? "default" : "outline"}
-            onClick={() => setActiveTab("earnings")}
+            variant={activeTab === "bookings" ? "default" : "outline"}
+            onClick={() => setActiveTab("bookings")}
+            className={
+              activeTab === "bookings"
+                ? "bg-green-600 hover:bg-green-700"
+                : "border-gray-700 text-gray-300 hover:bg-gray-800"
+            }
           >
-            Earnings & Savings
+            My Bookings ({myBookings.length})
           </Button>
           <Button
-            variant={activeTab === "impact" ? "default" : "outline"}
-            onClick={() => setActiveTab("impact")}
+            variant={activeTab === "listings" ? "default" : "outline"}
+            onClick={() => setActiveTab("listings")}
+            className={
+              activeTab === "listings"
+                ? "bg-green-600 hover:bg-green-700"
+                : "border-gray-700 text-gray-300 hover:bg-gray-800"
+            }
           >
-            Community Impact
+            My Listings ({myListings.length})
           </Button>
         </div>
 
-        {activeTab === "earnings" ? (
-          <EarningsTab data={data} />
+        {/* Tab Content */}
+        {activeTab === "bookings" ? (
+          <BookingsSection bookings={myBookings} />
         ) : (
-          <ImpactTab data={data} />
+          <ListingsSection listings={myListings} />
         )}
       </main>
-
-      {/* Admin Panel for Demo */}
-      <AdminPanel />
     </div>
   );
 }
 
-function EarningsTab({ data }: { data: ListerData }) {
-  const projectedTax = Math.max(2450, data.totalEarningsMonth * 0.3);
-  const taxProgress = projectedTax > 0 ? (data.taxVaultBalance / projectedTax) * 100 : 0;
+function BookingsSection({ bookings }: { bookings: Booking[] }) {
+  if (bookings.length === 0) {
+    return (
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardContent className="p-12 text-center">
+          <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="h-8 w-8 text-gray-500" />
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">
+            No bookings yet
+          </h3>
+          <p className="text-gray-400 mb-6">
+            Find a space on the map and make your first booking!
+          </p>
+          <Link href="/">
+            <Button className="bg-green-600 hover:bg-green-700">
+              Explore Spaces
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Separate active and past bookings
+  const activeBookings = bookings.filter(
+    (b) =>
+      b.status === "ACTIVE" ||
+      b.status === "CONFIRMED" ||
+      b.status === "PENDING",
+  );
+  const pastBookings = bookings.filter(
+    (b) => b.status === "COMPLETED" || b.status === "CANCELLED",
+  );
 
   return (
     <div className="space-y-6">
-      {/* Top Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Today's Earnings */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Today</CardDescription>
-            <CardTitle className="text-3xl">
-              ${data.totalEarningsToday.toFixed(2)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-gray-500">Current day earnings</p>
-          </CardContent>
-        </Card>
+      {/* Active Bookings */}
+      {activeBookings.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-white mb-4">
+            Active Bookings
+          </h2>
+          <div className="space-y-4">
+            {activeBookings.map((booking) => (
+              <BookingCard key={booking.id} booking={booking} isActive />
+            ))}
+          </div>
+        </div>
+      )}
 
-        {/* Monthly Earnings */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>This Month</CardDescription>
-            <CardTitle className="text-3xl">
-              ${data.totalEarningsMonth.toFixed(2)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-gray-500">From your spaces</p>
-          </CardContent>
-        </Card>
+      {/* Past Bookings */}
+      {pastBookings.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-400 mb-4">
+            Past Bookings
+          </h2>
+          <div className="space-y-4">
+            {pastBookings.map((booking) => (
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                isActive={false}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
-        {/* Tax Savings Vault */}
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-blue-700">
-              Tax Savings Vault
-            </CardDescription>
-            <CardTitle className="text-3xl text-blue-600">
-              ${data.taxVaultBalance.toFixed(2)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-blue-600">20% auto-saved from payouts</p>
-          </CardContent>
-        </Card>
+function BookingCard({
+  booking,
+  isActive,
+}: {
+  booking: Booking;
+  isActive: boolean;
+}) {
+  const space = booking.space;
+  const daysRemaining = getDaysRemaining(booking.end_date);
 
-        {/* Total Spaces */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Listed Spaces</CardDescription>
-            <CardTitle className="text-3xl">{data.totalSpaces}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-gray-500">
-              {data.activeBookings} active {data.activeBookings === 1 ? 'booking' : 'bookings'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+  return (
+    <Card
+      className={`${isActive ? "bg-gray-800/50" : "bg-gray-800/30"} border-gray-700`}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex gap-4">
+            {/* Type Icon */}
+            <div
+              className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                typeColors[space?.type || "PARKING"]
+              }`}
+            >
+              {typeIcons[space?.type || "PARKING"]}
+            </div>
 
-      {/* Charts and Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Earnings Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Earnings Overview</CardTitle>
-            <CardDescription>Your revenue over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <EarningsChart data={data.chartData} />
-          </CardContent>
-        </Card>
-
-        {/* Savings Sweep Explanation */}
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <span className="text-2xl">🏦</span>
-              Automatic Tax Savings (Capital One Integration)
-            </CardTitle>
-            <CardDescription className="text-green-700">
-              20% of every payout is automatically swept to your tax savings vault
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-8 flex-wrap">
-              <div>
-                <p className="text-sm text-gray-600">Projected Q1 Tax</p>
-                <p className="text-xl font-bold">${projectedTax.toFixed(2)}</p>
+            {/* Details */}
+            <div>
+              <h3 className="font-semibold text-white">
+                {space?.name || "Space"}
+              </h3>
+              <div className="flex items-center gap-1 text-gray-400 text-sm mt-1">
+                <MapPin className="h-3 w-3" />
+                <span>
+                  {space?.address}, {space?.city}
+                </span>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Already Saved</p>
-                <p className="text-xl font-bold text-green-600">
-                  ${data.taxVaultBalance.toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Progress</p>
-                <div className="w-32 h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-green-500 rounded-full transition-all"
-                    style={{ width: `${Math.min(taxProgress, 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {taxProgress.toFixed(1)}% saved
-                </p>
+              <div className="flex items-center gap-4 mt-2 text-sm">
+                <span className="text-gray-400">
+                  <Calendar className="h-3 w-3 inline mr-1" />
+                  {formatDate(booking.start_date)} -{" "}
+                  {formatDate(booking.end_date)}
+                </span>
+                <span className="text-gray-400">
+                  <Clock className="h-3 w-3 inline mr-1" />
+                  {booking.total_days} days
+                </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Recent Transactions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
-            <CardDescription>Your latest earnings from bookings</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {data.recentTransactions.length === 0 ? (
-                <p className="text-gray-500 py-4 text-center">
-                  No bookings yet.{" "}
-                  <Link href="/list-space" className="text-green-600 hover:underline">
-                    List a space
-                  </Link>{" "}
-                  to start earning!
-                </p>
-              ) : (
-                data.recentTransactions.map((tx) => (
+          {/* Right Side */}
+          <div className="text-right">
+            <span
+              className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                statusColors[booking.status]
+              }`}
+            >
+              {booking.status}
+            </span>
+            <p className="text-xl font-bold text-white mt-2">
+              ${booking.total_price.toFixed(2)}
+            </p>
+            {isActive && daysRemaining > 0 && (
+              <p className="text-sm text-green-500 mt-1">
+                {daysRemaining} day{daysRemaining !== 1 ? "s" : ""} remaining
+              </p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ListingsSection({ listings }: { listings: Space[] }) {
+  if (listings.length === 0) {
+    return (
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardContent className="p-12 text-center">
+          <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Plus className="h-8 w-8 text-gray-500" />
+          </div>
+          <h3 className="text-xl font-semibold text-white mb-2">
+            No listings yet
+          </h3>
+          <p className="text-gray-400 mb-6">
+            Start earning by listing your unused space!
+          </p>
+          <Link href="/list-space">
+            <Button className="bg-green-600 hover:bg-green-700">
+              <Plus className="h-4 w-4 mr-2" />
+              List Your Space
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Add New Listing Button */}
+      <div className="flex justify-end">
+        <Link href="/list-space">
+          <Button className="bg-green-600 hover:bg-green-700">
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Listing
+          </Button>
+        </Link>
+      </div>
+
+      {/* Listings */}
+      <div className="space-y-4">
+        {listings.map((listing) => (
+          <ListingCard key={listing.id} listing={listing} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ListingCard({ listing }: { listing: Space }) {
+  const activeBookings = listing.bookings.filter(
+    (b) => b.status === "ACTIVE" || b.status === "CONFIRMED",
+  );
+  const totalEarned = listing.bookings
+    .filter((b) => b.status === "COMPLETED" || b.status === "ACTIVE")
+    .reduce((sum, b) => sum + b.total_price, 0);
+
+  return (
+    <Card className="bg-gray-800/50 border-gray-700">
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex gap-4">
+            {/* Type Icon */}
+            <div
+              className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                typeColors[listing.type]
+              }`}
+            >
+              {typeIcons[listing.type]}
+            </div>
+
+            {/* Details */}
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-white">{listing.name}</h3>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs ${
+                    listing.status === "AVAILABLE"
+                      ? "bg-green-900/50 text-green-400"
+                      : "bg-gray-700 text-gray-400"
+                  }`}
+                >
+                  {listing.status}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-gray-400 text-sm mt-1">
+                <MapPin className="h-3 w-3" />
+                <span>
+                  {listing.address}, {listing.city}
+                </span>
+              </div>
+              <div className="flex items-center gap-4 mt-2 text-sm">
+                <span className="text-gray-400">
+                  <DollarSign className="h-3 w-3 inline" />
+                  {listing.price_per_day}/day
+                </span>
+                <span className="text-gray-400">
+                  Max {listing.max_rental_days} days
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side */}
+          <div className="text-right">
+            <p className="text-sm text-gray-400">Total Earned</p>
+            <p className="text-xl font-bold text-green-500">
+              ${totalEarned.toFixed(2)}
+            </p>
+            {activeBookings.length > 0 && (
+              <p className="text-sm text-blue-400 mt-1">
+                {activeBookings.length} active booking
+                {activeBookings.length !== 1 ? "s" : ""}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Active Bookings for this listing */}
+        {activeBookings.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-700">
+            <p className="text-sm font-medium text-gray-300 mb-2">
+              Current Renters
+            </p>
+            <div className="space-y-2">
+              {activeBookings.map((booking) => {
+                const daysRemaining = getDaysRemaining(booking.end_date);
+                return (
                   <div
-                    key={tx.id}
-                    className="flex items-center justify-between py-2 border-b last:border-0"
+                    key={booking.id}
+                    className="flex items-center justify-between bg-gray-900/50 rounded-lg p-3"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
-                        💰
+                      <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
+                        <User className="h-4 w-4 text-gray-400" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{tx.description}</p>
-                        <p className="text-xs text-gray-500">{tx.time}</p>
+                        <p className="text-sm text-white">
+                          {booking.renter?.full_name ||
+                            booking.renter?.email ||
+                            "Renter"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatDate(booking.start_date)} -{" "}
+                          {formatDate(booking.end_date)}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-green-600">
-                        +${tx.amount.toFixed(2)}
+                      <p className="text-sm font-medium text-white">
+                        ${booking.total_price.toFixed(2)}
                       </p>
-                      <p className="text-xs text-gray-500 capitalize">
-                        {tx.status}
+                      <p className="text-xs text-green-500">
+                        {daysRemaining} day{daysRemaining !== 1 ? "s" : ""} left
                       </p>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Fee Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Fee Structure</CardTitle>
-            <CardDescription>How your earnings are distributed</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="flex-1 text-center p-4 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold">98%</p>
-                <p className="text-sm text-gray-600">To You</p>
-              </div>
-              <div className="text-2xl text-gray-300">→</div>
-              <div className="flex-1 text-center p-4 bg-green-50 rounded-lg">
-                <p className="text-2xl font-bold text-green-600">78%</p>
-                <p className="text-sm text-gray-600">Direct Payout</p>
-              </div>
-              <div className="text-2xl text-gray-300">+</div>
-              <div className="flex-1 text-center p-4 bg-blue-50 rounded-lg">
-                <p className="text-2xl font-bold text-blue-600">20%</p>
-                <p className="text-sm text-gray-600">Tax Savings</p>
-              </div>
-              <div className="text-2xl text-gray-300">+</div>
-              <div className="flex-1 text-center p-4 bg-orange-50 rounded-lg">
-                <p className="text-2xl font-bold text-orange-600">2%</p>
-                <p className="text-sm text-gray-600">City Fee</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function ImpactTab({ data }: { data: ListerData }) {
-  const treesEquivalent = Math.floor(data.co2SavedTotal / 48);
-  const score = Math.min(100, data.totalRentalsHosted * 2 + data.neighborsHelped * 5);
-
-  return (
-    <div className="space-y-6">
-      {/* Impact Hero */}
-      <Card className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
-        <CardHeader>
-          <CardTitle className="text-2xl">Your Community Impact</CardTitle>
-          <CardDescription className="text-green-100">
-            Thank you for making your city more sustainable!
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-8 mt-4">
-            <div className="text-center">
-              <p className="text-5xl font-bold">{data.neighborsHelped}</p>
-              <p className="text-green-100">Neighbors helped</p>
-            </div>
-            <div className="text-center">
-              <p className="text-5xl font-bold">{data.co2SavedToday.toFixed(1)}</p>
-              <p className="text-green-100">lbs CO2 saved today</p>
-            </div>
-            <div className="text-center">
-              <p className="text-5xl font-bold">{data.totalRentalsHosted}</p>
-              <p className="text-green-100">Total rentals hosted</p>
+                );
+              })}
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Environmental Impact */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <span className="text-2xl">🌱</span>
-              Carbon Footprint Reduction
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-600">Total CO2 Saved</span>
-                  <span className="font-bold">{data.co2SavedTotal.toFixed(1)} lbs</span>
-                </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-green-500 rounded-full transition-all"
-                    style={{
-                      width: `${Math.min((data.co2SavedTotal / 100) * 100, 100)}%` /* scale: 0-100 lbs = 0-100% */,
-                    }}
-                  />
-                </div>
-              </div>
-              <p className="text-sm text-gray-600">
-                That&apos;s equivalent to planting{" "}
-                <span className="font-bold text-green-600">
-                  {treesEquivalent} tree{treesEquivalent !== 1 ? "s" : ""}
-                </span>{" "}
-                🌳
-              </p>
-              <div className="bg-green-50 p-3 rounded-lg">
-                <p className="text-sm text-green-800">
-                  By sharing your space, you&apos;ve helped reduce unnecessary
-                  driving. Each rental saves an average of {CO2_PER_RENTAL_LBS}{" "}
-                  lbs of CO2!
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <span className="text-2xl">🏘️</span>
-              Your Stats
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-gray-600">Total Rentals</span>
-                <span className="font-bold text-lg">{data.totalRentalsHosted}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-gray-600">Unique Neighbors Helped</span>
-                <span className="font-bold text-lg">{data.neighborsHelped}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-gray-600">CO2 Saved (Total)</span>
-                <span className="font-bold text-lg">
-                  {data.co2SavedTotal.toFixed(1)} lbs
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Community Growth Score */}
-      <Card className="border-purple-200">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <span className="text-2xl">⭐</span>
-            Community Growth Score
-          </CardTitle>
-          <CardDescription>
-            Your contribution to building a more sustainable city
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-8">
-            <div className="relative w-32 h-32">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="#e5e7eb"
-                  strokeWidth="12"
-                  fill="none"
-                />
-                <circle
-                  cx="64"
-                  cy="64"
-                  r="56"
-                  stroke="#8b5cf6"
-                  strokeWidth="12"
-                  fill="none"
-                  strokeDasharray={`${(score / 100) * 351.86} 351.86`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-3xl font-bold text-purple-600">
-                  {score}
-                </span>
-              </div>
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-2">
-                {score >= 50 ? "Great Progress! 🎉" : "Getting Started"}
-              </h3>
-              <p className="text-gray-600 text-sm mb-4">
-                {score >= 50
-                  ? "Keep sharing your space to grow your impact and reach Gold status!"
-                  : "List a space and complete rentals to grow your community score."}
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                <span
-                  className={`px-3 py-1 rounded-full text-sm ${score >= 75
-                    ? "bg-yellow-100 text-yellow-700"
-                    : score >= 50
-                      ? "bg-purple-100 text-purple-700"
-                      : "bg-gray-100 text-gray-600"
-                    }`}
-                >
-                  {score >= 75 ? "Gold" : score >= 50 ? "Silver" : "Bronze"} Member
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

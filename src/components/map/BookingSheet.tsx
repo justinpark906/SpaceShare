@@ -10,12 +10,13 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import type { Space } from "./CityMap";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface BookingSheetProps {
   space: Space | null;
   isOpen: boolean;
   onClose: () => void;
-  onBook: (space: Space, hours: number) => void;
+  onBook: (space: Space, days: number) => void;
 }
 
 type SpaceType = "PARKING" | "STORAGE" | "GARDEN";
@@ -38,38 +39,43 @@ export function BookingSheet({
   onClose,
   onBook,
 }: BookingSheetProps) {
-  const [hours, setHours] = useState(1);
+  const [days, setDays] = useState(1);
   const [isBooking, setIsBooking] = useState(false);
+  const { user } = useAuth();
 
   if (!space) return null;
 
   // Check if user is trying to book their own space
   const isOwnSpace = space.isOwned;
+  const maxDays = space.maxRentalDays || 30;
 
   const spaceType = (space.type || "PARKING") as SpaceType;
-  const totalPrice = space.pricePerHour * hours;
+  const totalPrice = space.pricePerDay * days;
   const platformFee = totalPrice * 0.02;
   const finalTotal = totalPrice + platformFee;
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDays(parseInt(e.target.value));
+  };
 
   const handleConfirmBooking = async () => {
     setIsBooking(true);
 
     try {
-      // Call the payment initiation API
       const response = await fetch("/api/pay/initiate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           spaceId: space.id,
-          renterId: "marcus_demo", // Demo user
+          renterId: user?.id || "guest",
           listerId: space.ownerId,
           amount: finalTotal,
-          hours,
+          days,
         }),
       });
 
       if (response.ok) {
-        onBook(space, hours);
+        onBook(space, days);
       }
     } catch (error) {
       console.error("Booking error:", error);
@@ -80,13 +86,13 @@ export function BookingSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md px-6">
+      <SheetContent className="w-full sm:max-w-md px-6 bg-white">
         <SheetHeader className="text-center">
-          <SheetTitle className="flex items-center justify-center gap-2">
+          <SheetTitle className="flex items-center justify-center gap-2 text-gray-900">
             <span className="text-2xl">{typeEmojis[spaceType]}</span>
             {space.name}
           </SheetTitle>
-          <SheetDescription className="text-center">
+          <SheetDescription className="text-center text-gray-600">
             {space.address || "Location available"}
           </SheetDescription>
         </SheetHeader>
@@ -104,34 +110,39 @@ export function BookingSheet({
 
           {/* Description */}
           {space.description && (
-            <p className="text-gray-600 text-center">{space.description}</p>
+            <p className="text-gray-700 text-center text-sm">
+              {space.description}
+            </p>
           )}
 
-          {/* Duration Selector */}
+          {/* Duration Slider */}
           <div className="w-full">
-            <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
-              How long do you need it?
+            <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+              How many days do you need it?
             </label>
-            <div className="flex items-center justify-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setHours(Math.max(1, hours - 1))}
-                disabled={hours <= 1}
-              >
-                -
-              </Button>
-              <span className="text-2xl font-bold w-16 text-center">
-                {hours}h
+
+            {/* Current selection display */}
+            <div className="text-center mb-4">
+              <span className="text-4xl font-bold text-gray-900">{days}</span>
+              <span className="text-xl text-gray-600 ml-1">
+                {days === 1 ? "day" : "days"}
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setHours(Math.min(24, hours + 1))}
-                disabled={hours >= 24}
-              >
-                +
-              </Button>
+            </div>
+
+            {/* Slider */}
+            <div className="px-2">
+              <input
+                type="range"
+                min="1"
+                max={maxDays}
+                value={days}
+                onChange={handleSliderChange}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>1 day</span>
+                <span>{maxDays} days max</span>
+              </div>
             </div>
           </div>
 
@@ -139,29 +150,18 @@ export function BookingSheet({
           <div className="bg-gray-50 rounded-lg p-4 space-y-2 w-full">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">
-                ${space.pricePerHour.toFixed(2)} x {hours} hour
-                {hours > 1 ? "s" : ""}
+                ${space.pricePerDay.toFixed(2)} x {days}{" "}
+                {days === 1 ? "day" : "days"}
               </span>
-              <span>${totalPrice.toFixed(2)}</span>
+              <span className="text-gray-900">${totalPrice.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">City Improvement Fee (2%)</span>
-              <span>${platformFee.toFixed(2)}</span>
+              <span className="text-gray-600">Service Fee (2%)</span>
+              <span className="text-gray-900">${platformFee.toFixed(2)}</span>
             </div>
             <div className="border-t pt-2 flex justify-between font-bold">
-              <span>Total</span>
+              <span className="text-gray-900">Total</span>
               <span className="text-green-600">${finalTotal.toFixed(2)}</span>
-            </div>
-          </div>
-
-          {/* Owner Info */}
-          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg w-full">
-            <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-700 font-bold">
-              S
-            </div>
-            <div>
-              <p className="font-medium text-sm">Hosted by Sarah</p>
-              <p className="text-xs text-gray-500">⭐ 4.9 (127 reviews)</p>
             </div>
           </div>
 
@@ -178,9 +178,21 @@ export function BookingSheet({
                 This is your listing. You cannot book your own space.
               </p>
             </div>
+          ) : !user ? (
+            <div className="w-full">
+              <Button
+                className="w-full h-12 text-lg bg-green-600 hover:bg-green-700"
+                onClick={() => (window.location.href = "/auth")}
+              >
+                Sign In to Book
+              </Button>
+              <p className="text-xs text-gray-500 text-center mt-2">
+                You need an account to make a booking.
+              </p>
+            </div>
           ) : (
             <Button
-              className="w-full h-12 text-lg"
+              className="w-full h-12 text-lg bg-green-600 hover:bg-green-700"
               onClick={handleConfirmBooking}
               disabled={isBooking}
             >
@@ -209,10 +221,10 @@ export function BookingSheet({
               )}
             </Button>
           )}
+
           {/* Security Note */}
           <p className="text-xs text-gray-500 text-center">
-            🔒 Payment secured by Visa Direct. You won't be charged until you
-            arrive.
+            Secure payment processing. You won't be charged until you arrive.
           </p>
         </div>
       </SheetContent>

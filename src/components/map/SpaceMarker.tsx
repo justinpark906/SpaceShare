@@ -95,7 +95,7 @@ export function SpaceMarker({
           }`}
           style={{ color }}
         >
-          ${space.pricePerHour}
+          ${space.pricePerDay}/d
         </div>
         {/* "Yours" badge for owned spaces */}
         {isOwned && (

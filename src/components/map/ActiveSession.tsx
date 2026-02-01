@@ -7,7 +7,7 @@ import type { Space } from "./CityMap";
 
 interface ActiveSessionProps {
   space: Space;
-  hours: number;
+  days: number;
   onEndSession: () => void;
   transactionId?: string;
 }
@@ -21,10 +21,12 @@ type SessionPhase =
 
 export function ActiveSession({
   space,
-  hours,
+  days,
   onEndSession,
   transactionId,
 }: ActiveSessionProps) {
+  // Convert days to hours for the timer display (simplified demo)
+  const hours = days;
   const [phase, setPhase] = useState<SessionPhase>("navigating");
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -98,7 +100,7 @@ export function ActiveSession({
     }, 2000);
   };
 
-  const totalCost = space.pricePerHour * hours;
+  const totalCost = space.pricePerDay * days;
   const remainingMinutes = hours * 60 - elapsedMinutes;
 
   return (

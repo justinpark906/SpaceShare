@@ -4,7 +4,7 @@ import { createBrowserClient } from "@supabase/ssr";
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 }
 
@@ -17,7 +17,7 @@ export interface DbSpace {
   name: string;
   description: string | null;
   type: "PARKING" | "STORAGE" | "GARDEN";
-  price_per_hour: number;
+  price_per_day: number;
   latitude: number;
   longitude: number;
   address: string;
@@ -28,9 +28,10 @@ export interface DbSpace {
   width_ft: number | null;
   length_ft: number | null;
   height_ft: number | null;
+  // Rental limits
+  max_rental_days: number;
   // Additional details
   amenities: string[] | null;
-  availability_hours: string | null; // JSON string for availability schedule
   instructions: string | null;
 }
 
@@ -43,4 +44,7 @@ export interface DbUser {
 }
 
 // Helper type for creating a new space
-export type CreateSpaceInput = Omit<DbSpace, "id" | "created_at" | "updated_at" | "owner_id">;
+export type CreateSpaceInput = Omit<
+  DbSpace,
+  "id" | "created_at" | "updated_at" | "owner_id"
+>;

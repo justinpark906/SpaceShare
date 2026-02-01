@@ -25,13 +25,14 @@ export interface Space {
   name: string;
   description: string | null;
   type: "PARKING" | "STORAGE" | "GARDEN";
-  pricePerHour: number;
+  pricePerDay: number;
   latitude: number;
   longitude: number;
   address: string;
   status: string;
   imageUrl: string | null;
   ownerId: string;
+  maxRentalDays: number;
   createdAt: string;
   updatedAt: string;
   isOwned?: boolean; // Whether current user owns this space
@@ -59,7 +60,7 @@ export function CityMap({ initialCenter }: CityMapProps) {
   const [showBookingSheet, setShowBookingSheet] = useState(false);
   const [activeSession, setActiveSession] = useState<{
     space: Space;
-    hours: number;
+    days: number;
     transactionId?: string;
   } | null>(null);
 
@@ -95,13 +96,14 @@ export function CityMap({ initialCenter }: CityMapProps) {
         name: item.name,
         description: item.description,
         type: item.type,
-        pricePerHour: item.price_per_hour,
+        pricePerDay: item.price_per_day,
         latitude: item.latitude,
         longitude: item.longitude,
         address: item.address,
         status: item.status,
         imageUrl: item.image_url,
         ownerId: item.owner_id,
+        maxRentalDays: item.max_rental_days || 30,
         createdAt: item.created_at,
         updatedAt: item.updated_at,
         isOwned: user?.id === item.owner_id,
@@ -145,11 +147,11 @@ export function CityMap({ initialCenter }: CityMapProps) {
     setShowBookingSheet(true);
   };
 
-  const handleBookingConfirm = (space: Space, hours: number) => {
+  const handleBookingConfirm = (space: Space, days: number) => {
     setShowBookingSheet(false);
     setActiveSession({
       space,
-      hours,
+      days,
       transactionId: `txn_${Date.now()}`,
     });
   };
@@ -279,7 +281,7 @@ export function CityMap({ initialCenter }: CityMapProps) {
       {activeSession && (
         <ActiveSession
           space={activeSession.space}
-          hours={activeSession.hours}
+          days={activeSession.days}
           transactionId={activeSession.transactionId}
           onEndSession={handleSessionEnd}
         />
@@ -293,17 +295,18 @@ function getMockSpaces(currentUserId?: string): Space[] {
   return [
     {
       id: "mock-1",
-      name: "Sarah's Garden",
+      name: "Backyard Garden",
       description:
         "Beautiful backyard garden available for urban farming. Perfect for growing vegetables or flowers.",
       type: "GARDEN",
-      pricePerHour: 5.0,
+      pricePerDay: 25.0,
       latitude: 37.7849,
       longitude: -122.4094,
       address: "123 Green St, San Francisco",
       status: "AVAILABLE",
       imageUrl: null,
-      ownerId: "sarah_123",
+      ownerId: "owner_123",
+      maxRentalDays: 30,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isOwned: false,
@@ -314,13 +317,14 @@ function getMockSpaces(currentUserId?: string): Space[] {
       description:
         "Covered parking spot in the heart of downtown. 24/7 access, well-lit area.",
       type: "PARKING",
-      pricePerHour: 3.5,
+      pricePerDay: 15.0,
       latitude: 37.7749,
       longitude: -122.4194,
       address: "456 Market St, San Francisco",
       status: "AVAILABLE",
       imageUrl: null,
-      ownerId: "sarah_123",
+      ownerId: "owner_123",
+      maxRentalDays: 14,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isOwned: false,
@@ -331,13 +335,14 @@ function getMockSpaces(currentUserId?: string): Space[] {
       description:
         "Climate-controlled storage space. Great for seasonal items or business inventory.",
       type: "STORAGE",
-      pricePerHour: 2.0,
+      pricePerDay: 10.0,
       latitude: 37.7649,
       longitude: -122.4294,
       address: "789 Storage Ave, San Francisco",
       status: "AVAILABLE",
       imageUrl: null,
-      ownerId: "sarah_123",
+      ownerId: "owner_456",
+      maxRentalDays: 60,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isOwned: false,
@@ -348,13 +353,14 @@ function getMockSpaces(currentUserId?: string): Space[] {
       description:
         "Easy access parking near Golden Gate Park. Perfect for day trips.",
       type: "PARKING",
-      pricePerHour: 4.0,
+      pricePerDay: 20.0,
       latitude: 37.7699,
       longitude: -122.4544,
       address: "321 Sunset Blvd, San Francisco",
       status: "AVAILABLE",
       imageUrl: null,
       ownerId: "owner_456",
+      maxRentalDays: 7,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isOwned: false,
@@ -365,13 +371,14 @@ function getMockSpaces(currentUserId?: string): Space[] {
       description:
         "Shared garden space with water access. Join our community of urban farmers!",
       type: "GARDEN",
-      pricePerHour: 3.0,
+      pricePerDay: 15.0,
       latitude: 37.7599,
       longitude: -122.4144,
       address: "567 Garden Way, San Francisco",
       status: "AVAILABLE",
       imageUrl: null,
       ownerId: "owner_789",
+      maxRentalDays: 90,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isOwned: false,
