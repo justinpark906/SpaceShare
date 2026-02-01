@@ -9,27 +9,36 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const hourlyData = [
-  { time: "6am", earnings: 0 },
-  { time: "7am", earnings: 3.5 },
-  { time: "8am", earnings: 7.0 },
-  { time: "9am", earnings: 12.5 },
-  { time: "10am", earnings: 15.0 },
-  { time: "11am", earnings: 22.0 },
-  { time: "12pm", earnings: 28.5 },
-  { time: "1pm", earnings: 32.0 },
-  { time: "2pm", earnings: 38.0 },
-  { time: "3pm", earnings: 42.5 },
-  { time: "4pm", earnings: 47.2 },
-  { time: "Now", earnings: 47.2 },
+const PLACEHOLDER_DATA = [
+  { date: "Mon", earnings: 0 },
+  { date: "Tue", earnings: 0 },
+  { date: "Wed", earnings: 0 },
+  { date: "Thu", earnings: 0 },
+  { date: "Fri", earnings: 0 },
+  { date: "Sat", earnings: 0 },
+  { date: "Sun", earnings: 0 },
 ];
 
-export function EarningsChart() {
+interface ChartDataPoint {
+  date: string;
+  earnings: number;
+}
+
+interface EarningsChartProps {
+  data?: ChartDataPoint[];
+}
+
+export function EarningsChart({ data }: EarningsChartProps) {
+  const chartData =
+    data && data.length > 0
+      ? data.map((d) => ({ time: d.date, earnings: d.earnings }))
+      : PLACEHOLDER_DATA.map((d) => ({ time: d.date, earnings: d.earnings }));
+
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
-          data={hourlyData}
+          data={chartData}
           margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
         >
           <defs>
