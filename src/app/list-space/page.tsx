@@ -154,28 +154,28 @@ export default function ListSpacePage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-green-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="h-8 w-8 text-green-600" />
+          <div className="w-16 h-16 bg-green-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="h-8 w-8 text-green-500" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Space Listed!</h2>
-          <p className="text-gray-600">Your space is now visible on the map.</p>
-          <p className="text-gray-500 text-sm mt-2">Redirecting to home...</p>
+          <h2 className="text-2xl font-bold text-white mb-2">Space Listed!</h2>
+          <p className="text-gray-300">Your space is now visible on the map.</p>
+          <p className="text-gray-400 text-sm mt-2">Redirecting to home...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-green-950">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b bg-white">
+      <header className="flex items-center justify-between px-6 py-4 border-b bg-gray-900/50 backdrop-blur-sm border-gray-800">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600 text-white font-bold text-lg">
             S
           </div>
-          <span className="text-2xl font-bold text-gray-900">SpaceShare</span>
+          <span className="text-2xl font-bold text-white">SpaceShare</span>
         </Link>
         <Link href="/">
           <Button variant="ghost" className="gap-2">
@@ -188,8 +188,8 @@ export default function ListSpacePage() {
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-6 py-12">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">List Your Space</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-white mb-2">List Your Space</h1>
+          <p className="text-gray-200">
             Turn your unused space into income. It only takes a few minutes.
           </p>
         </div>
@@ -199,19 +199,17 @@ export default function ListSpacePage() {
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step >= s
-                    ? "bg-green-600 text-white"
-                    : "bg-gray-200 text-gray-500"
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= s
+                    ? "bg-green-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.5)]"
+                    : "bg-gray-800 text-gray-400"
+                  }`}
               >
                 {s}
               </div>
               {s < 3 && (
                 <div
-                  className={`w-12 h-1 ${
-                    step > s ? "bg-green-600" : "bg-gray-200"
-                  }`}
+                  className={`w-12 h-1 ${step > s ? "bg-green-500" : "bg-gray-800"
+                    }`}
                 />
               )}
             </div>
@@ -219,11 +217,11 @@ export default function ListSpacePage() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="bg-gray-900/70 border border-gray-800 rounded-2xl shadow-2xl p-8 backdrop-blur-sm">
             {/* Step 1: Space Type */}
             {step === 1 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-white">
                   What type of space do you have?
                 </h2>
                 <div className="grid gap-4">
@@ -234,24 +232,30 @@ export default function ListSpacePage() {
                         key={type.id}
                         type="button"
                         onClick={() => setSpaceType(type.id)}
-                        className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
-                          spaceType === type.id
-                            ? "border-green-600 bg-green-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
+                        className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${spaceType === type.id
+                            ? type.id === "PARKING"
+                              ? "border-blue-500/70 bg-blue-500/10"
+                              : type.id === "STORAGE"
+                                ? "border-amber-500/70 bg-amber-500/10"
+                                : "border-green-500/70 bg-green-500/10"
+                            : "border-gray-800 hover:border-gray-700"
+                          }`}
                       >
                         <div
-                          className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                            spaceType === type.id
-                              ? "bg-green-600 text-white"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
+                          className={`w-12 h-12 rounded-lg flex items-center justify-center ${spaceType === type.id
+                              ? type.id === "PARKING"
+                                ? "bg-blue-600 text-white"
+                                : type.id === "STORAGE"
+                                  ? "bg-amber-600 text-white"
+                                  : "bg-green-600 text-white"
+                              : "bg-gray-800 text-gray-300"
+                            }`}
                         >
                           <Icon className="h-6 w-6" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{type.label}</p>
-                          <p className="text-sm text-gray-500">{type.description}</p>
+                          <p className="font-medium text-white">{type.label}</p>
+                          <p className="text-sm text-gray-400">{type.description}</p>
                         </div>
                       </button>
                     );
@@ -271,13 +275,13 @@ export default function ListSpacePage() {
             {/* Step 2: Location & Details */}
             {step === 2 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-white">
                   Tell us about your space
                 </h2>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Space Name
                     </label>
                     <Input
@@ -285,12 +289,12 @@ export default function ListSpacePage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
-                      className="py-6"
+                      className="py-6 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 focus:border-green-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       Description
                     </label>
                     <textarea
@@ -298,13 +302,13 @@ export default function ListSpacePage() {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-3 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-3 py-3 bg-gray-900 border border-gray-700 rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
                         <MapPin className="inline h-4 w-4 mr-1" />
                         City
                       </label>
@@ -313,11 +317,11 @@ export default function ListSpacePage() {
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
                         required
-                        className="py-6"
+                        className="py-6 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 focus:border-green-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
                         Street Address
                       </label>
                       <Input
@@ -325,13 +329,13 @@ export default function ListSpacePage() {
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         required
-                        className="py-6"
+                        className="py-6 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 focus:border-green-500"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       <DollarSign className="inline h-4 w-4 mr-1" />
                       Price per Hour ($)
                     </label>
@@ -343,7 +347,7 @@ export default function ListSpacePage() {
                       value={pricePerHour}
                       onChange={(e) => setPricePerHour(e.target.value)}
                       required
-                      className="py-6"
+                      className="py-6 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 focus:border-green-500"
                     />
                   </div>
                 </div>
@@ -372,13 +376,13 @@ export default function ListSpacePage() {
             {/* Step 3: Dimensions & Final */}
             {step === 3 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-900">
+                <h2 className="text-xl font-semibold text-white">
                   Final details
                 </h2>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       <Ruler className="inline h-4 w-4 mr-1" />
                       Dimensions (optional)
                     </label>
@@ -391,7 +395,7 @@ export default function ListSpacePage() {
                           placeholder="Width (ft)"
                           value={widthFt}
                           onChange={(e) => setWidthFt(e.target.value)}
-                          className="py-6"
+                          className="py-6 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 focus:border-green-500"
                         />
                       </div>
                       <div>
@@ -402,7 +406,7 @@ export default function ListSpacePage() {
                           placeholder="Length (ft)"
                           value={lengthFt}
                           onChange={(e) => setLengthFt(e.target.value)}
-                          className="py-6"
+                          className="py-6 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 focus:border-green-500"
                         />
                       </div>
                       <div>
@@ -413,14 +417,14 @@ export default function ListSpacePage() {
                           placeholder="Height (ft)"
                           value={heightFt}
                           onChange={(e) => setHeightFt(e.target.value)}
-                          className="py-6"
+                          className="py-6 bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 focus:border-green-500"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
                       <FileText className="inline h-4 w-4 mr-1" />
                       Access Instructions (optional)
                     </label>
@@ -429,7 +433,7 @@ export default function ListSpacePage() {
                       value={instructions}
                       onChange={(e) => setInstructions(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-3 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-3 py-3 bg-gray-900 border border-gray-700 rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
                   </div>
                 </div>
@@ -441,21 +445,21 @@ export default function ListSpacePage() {
                 )}
 
                 {/* Summary */}
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <h3 className="font-medium text-gray-900 mb-2">Summary</h3>
-                  <div className="text-sm text-gray-600 space-y-1">
+                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-4">
+                  <h3 className="font-medium text-white mb-2">Summary</h3>
+                  <div className="text-sm text-gray-300 space-y-1">
                     <p>
-                      <span className="font-medium">Type:</span>{" "}
+                      <span className="font-medium text-gray-200">Type:</span>{" "}
                       {SPACE_TYPES.find((t) => t.id === spaceType)?.label}
                     </p>
                     <p>
-                      <span className="font-medium">Name:</span> {name}
+                      <span className="font-medium text-gray-200">Name:</span> {name}
                     </p>
                     <p>
-                      <span className="font-medium">Location:</span> {address}, {city}
+                      <span className="font-medium text-gray-200">Location:</span> {address}, {city}
                     </p>
                     <p>
-                      <span className="font-medium">Price:</span> ${pricePerHour}/hour
+                      <span className="font-medium text-gray-200">Price:</span> ${pricePerHour}/hour
                     </p>
                   </div>
                 </div>

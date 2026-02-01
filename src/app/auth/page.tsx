@@ -48,14 +48,14 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-green-950 flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600 text-white font-bold text-lg">
             S
           </div>
-          <span className="text-2xl font-bold text-gray-900">SpaceShare</span>
+          <span className="text-2xl font-bold text-white">SpaceShare</span>
         </Link>
         <Link href="/">
           <Button variant="ghost" className="gap-2">
@@ -68,11 +68,11 @@ export default function AuthPage() {
       {/* Auth Form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
+          <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-gray-800">
+            <h1 className="text-2xl font-bold text-white text-center mb-2">
               {isSignUp ? "Create your account" : "Welcome back"}
             </h1>
-            <p className="text-gray-600 text-center mb-8">
+            <p className="text-gray-300 text-center mb-8">
               {isSignUp
                 ? "Start sharing and discovering spaces"
                 : "Sign in to continue to SpaceShare"}
@@ -118,7 +118,7 @@ export default function AuthPage() {
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-3">
+                <div className="bg-red-900/50 border border-red-800 text-red-300 text-sm rounded-lg p-3">
                   {error}
                 </div>
               )}
@@ -148,7 +148,7 @@ export default function AuthPage() {
             </div>
           </div>
 
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <p className="text-center text-gray-400 text-sm mt-6">
             By continuing, you agree to SpaceShare's Terms of Service and Privacy Policy.
           </p>
         </div>

@@ -28,7 +28,7 @@ export function Header({ variant = "hero", onLogoClick }: HeaderProps) {
         S
       </div>
       <span
-        className={`font-${isCompact ? "semibold" : "bold"} text-gray-900 ${
+        className={`font-${isCompact ? "semibold" : "bold"} text-gray-900 dark:text-gray-100 ${
           isCompact ? "text-xl" : "text-2xl"
         }`}
       >
@@ -45,7 +45,7 @@ export function Header({ variant = "hero", onLogoClick }: HeaderProps) {
         S
       </div>
       <span
-        className={`font-${isCompact ? "semibold" : "bold"} text-gray-900 ${
+        className={`font-${isCompact ? "semibold" : "bold"} text-gray-900 dark:text-gray-100 ${
           isCompact ? "text-xl" : "text-2xl"
         }`}
       >
@@ -57,7 +57,7 @@ export function Header({ variant = "hero", onLogoClick }: HeaderProps) {
   return (
     <header
       className={`flex items-center justify-between ${
-        isCompact ? "border-b bg-white px-4 py-3 shadow-sm" : "px-6 py-4"
+        isCompact ? "border-b bg-white dark:bg-gray-900 dark:border-gray-800 px-4 py-3 shadow-sm" : "px-6 py-4"
       }`}
     >
       {Logo}
@@ -83,7 +83,7 @@ export function Header({ variant = "hero", onLogoClick }: HeaderProps) {
           </Button>
         ) : user ? (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline max-w-[120px] truncate">
                 {user.email}

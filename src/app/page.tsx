@@ -5,7 +5,7 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Header } from "@/components/Header";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search, ChevronDown, MapPin, Clock, Shield } from "lucide-react";
 
 // City coordinates for search - Top 200+ US cities by population
@@ -314,11 +314,27 @@ const CITY_COORDINATES: Record<
 export default function Home() {
   const mapSectionRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMapView, setIsMapView] = useState(false);
   const [mapCenter, setMapCenter] = useState<{
     lat: number;
     lng: number;
     zoom: number;
   } | null>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const mapTop = mapSectionRef.current?.offsetTop ?? 0;
+      setIsMapView(window.scrollY >= mapTop - 8);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
 
   const scrollToMap = () => {
     mapSectionRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -338,85 +354,88 @@ export default function Home() {
 
   return (
     <div className="scroll-smooth">
-      {/* Hero Section - Full Viewport */}
-      <section className="min-h-screen flex flex-col bg-gradient-to-br from-green-50 via-white to-emerald-50">
-        {/* Header */}
+      <div
+        className={`sticky top-0 z-50 transition-all duration-300 ${isMapView
+          ? "bg-black/60 backdrop-blur border-b border-white/5"
+          : "bg-transparent"
+          }`}
+      >
         <Header variant="hero" />
+      </div>
 
-        {/* Hero Content */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 -mt-16">
-          <div className="max-w-4xl text-center space-y-8">
-            {/* Main Headline */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 leading-tight">
-              Making the city's hidden corners{" "}
-              <span className="text-green-600">work for everyone.</span>
-            </h1>
+      <div className="bg-gradient-to-br from-black via-gray-900 to-green-950">
+        {/* Hero Section - Full Viewport */}
+        <section className="min-h-screen flex flex-col">
 
-            {/* Subtitle */}
-            <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto">
-              Discover and rent unused spaces in your neighborhood - parking
-              spots, storage areas, gardens, and more.
-            </p>
+          {/* Hero Content */}
+          <div className="relative z-0 flex-1 flex flex-col items-center justify-center px-6 -mt-16">
+            <div className="max-w-4xl text-center space-y-8">
+              {/* Main Headline */}
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight">
+                Making the city's hidden corners{" "}
+                <span className="text-green-500">work for everyone.</span>
+              </h1>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="max-w-xl mx-auto w-full">
-              <div className="relative flex items-center">
-                <Search className="absolute left-4 h-5 w-5 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search a city (e.g., San Francisco, New York...)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 pr-32 py-6 text-lg rounded-full border-2 border-gray-200 focus:border-green-500 shadow-lg"
-                />
-                <Button
-                  type="submit"
-                  className="absolute right-2 bg-green-600 hover:bg-green-700 rounded-full px-6"
-                >
-                  Explore
-                </Button>
-              </div>
-              <p className="text-sm text-gray-500 mt-3">
-                Try: San Francisco, Providence, New York, Chicago, Miami, Austin
+              {/* Subtitle */}
+              <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto">
+                Discover and rent unused spaces in your neighborhood - parking
+                spots, storage areas, gardens, and more.
               </p>
-            </form>
 
-            {/* Feature Pills */}
-            <div className="flex flex-wrap justify-center gap-4 pt-4">
-              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border">
-                <MapPin className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-gray-700">200+ Cities</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border">
-                <Clock className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-gray-700">Book Instantly</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border">
-                <Shield className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-gray-700">Secure Payments</span>
+              {/* Search Bar */}
+              <form onSubmit={handleSearch} className="max-w-xl mx-auto w-full">
+                <div className="relative flex items-center">
+                  <Search className="absolute left-4 h-5 w-5 text-gray-500" />
+                  <Input
+                    type="text"
+                    placeholder="Search a city (e.g., San Francisco, New York...)"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-12 pr-32 py-6 text-lg rounded-full border-2 border-gray-700 bg-gray-900/50 backdrop-blur-sm text-white placeholder:text-gray-500 focus:border-green-500 shadow-lg"
+                  />
+                  <Button
+                    type="submit"
+                    className="absolute right-2 bg-green-600 hover:bg-green-700 rounded-full px-6"
+                  >
+                    Explore
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-400 mt-3">
+                  Try: San Francisco, Providence, New York, Chicago, Miami, Austin
+                </p>
+              </form>
+
+              {/* Feature Pills */}
+              <div className="flex flex-wrap justify-center gap-4 pt-4">
+                <div className="flex items-center gap-2 bg-gray-800/50 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-gray-700">
+                  <MapPin className="h-4 w-4 text-green-500" />
+                  <span className="text-sm text-gray-200">200+ Cities</span>
+                </div>
+                <div className="flex items-center gap-2 bg-gray-800/50 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-gray-700">
+                  <Clock className="h-4 w-4 text-green-500" />
+                  <span className="text-sm text-gray-200">Book Instantly</span>
+                </div>
+                <div className="flex items-center gap-2 bg-gray-800/50 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-gray-700">
+                  <Shield className="h-4 w-4 text-green-500" />
+                  <span className="text-sm text-gray-200">Secure Payments</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Scroll Indicator */}
-          <button
-            onClick={scrollToMap}
-            className="absolute bottom-8 flex flex-col items-center gap-2 text-gray-500 hover:text-green-600 transition-colors animate-bounce"
-          >
-            <span className="text-sm font-medium">Explore the map</span>
-            <ChevronDown className="h-6 w-6" />
-          </button>
-        </div>
-      </section>
+            {/* Scroll Indicator */}
+            <button
+              onClick={scrollToMap}
+              className="absolute bottom-8 flex flex-col items-center gap-2 text-gray-400 hover:text-green-500 transition-colors animate-bounce"
+            >
+              <span className="text-sm font-medium">Explore the map</span>
+              <ChevronDown className="h-6 w-6" />
+            </button>
+          </div>
+        </section>
+      </div>
 
       {/* Map Section - Full Viewport */}
       <section ref={mapSectionRef} className="h-screen flex flex-col">
-        {/* Compact Header for Map Section */}
-        <Header
-          variant="compact"
-          onLogoClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        />
-
         {/* Map Area */}
         <main className="flex-1 relative">
           <CityMap initialCenter={mapCenter} />

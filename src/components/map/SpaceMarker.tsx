@@ -14,8 +14,8 @@ type SpaceType = "PARKING" | "STORAGE" | "GARDEN";
 
 const typeColors = {
   PARKING: "#3B82F6", // blue
-  STORAGE: "#10B981", // green
-  GARDEN: "#F59E0B", // amber
+  STORAGE: "#F59E0B", // amber/orange
+  GARDEN: "#10B981", // green
 };
 
 // Purple color for owned spaces

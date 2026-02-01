@@ -25,8 +25,8 @@ const typeLabels = {
 
 const typeBadgeColors = {
   PARKING: "bg-blue-100 text-blue-800",
-  STORAGE: "bg-green-100 text-green-800",
-  GARDEN: "bg-amber-100 text-amber-800",
+  STORAGE: "bg-amber-100 text-amber-800",
+  GARDEN: "bg-green-100 text-green-800",
 };
 
 type SpaceType = "PARKING" | "STORAGE" | "GARDEN";

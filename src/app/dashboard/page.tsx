@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EarningsChart } from "@/components/EarningsChart";
 import { AdminPanel } from "@/components/AdminPanel";
+import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 
 // Mock data for demo
@@ -76,23 +77,36 @@ const MOCK_LISTER_DATA = {
 export default function Dashboard() {
   const [data, setData] = useState(MOCK_LISTER_DATA);
   const [activeTab, setActiveTab] = useState<"earnings" | "impact">("earnings");
+  const { user, loading, signOut } = useAuth();
+
+  const displayName = useMemo(() => {
+    const fullName = user?.user_metadata?.full_name as string | undefined;
+    return fullName || user?.email || data.name;
+  }, [user, data.name]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-green-950">
       {/* Header */}
-      <header className="bg-white border-b shadow-sm">
+      <header className="bg-gray-900/50 backdrop-blur-sm border-b border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600 text-white font-bold">
               S
             </div>
-            <span className="text-xl font-semibold text-gray-900">
+            <span className="text-xl font-semibold text-white">
               SpaceShare
             </span>
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">Welcome, {data.name}!</span>
-            <Button variant="outline" size="sm">
+            <span className="text-sm text-gray-300">
+              {loading ? "Welcome" : `Welcome, ${displayName}!`}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => signOut()}
+              disabled={loading}
+            >
               Sign Out
             </Button>
           </div>
@@ -102,8 +116,8 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Lister Dashboard</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-white">Lister Dashboard</h1>
+          <p className="text-gray-200 mt-1">
             Track your earnings and community impact
           </p>
         </div>
@@ -262,9 +276,8 @@ function EarningsTab({ data }: { data: typeof MOCK_LISTER_DATA }) {
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      tx.type === "earning" ? "bg-green-100" : "bg-blue-100"
-                    }`}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type === "earning" ? "bg-green-100" : "bg-blue-100"
+                      }`}
                   >
                     {tx.type === "earning" ? "💰" : "🏦"}
                   </div>
@@ -275,9 +288,8 @@ function EarningsTab({ data }: { data: typeof MOCK_LISTER_DATA }) {
                 </div>
                 <div className="text-right">
                   <p
-                    className={`font-semibold ${
-                      tx.type === "earning" ? "text-green-600" : "text-blue-600"
-                    }`}
+                    className={`font-semibold ${tx.type === "earning" ? "text-green-600" : "text-blue-600"
+                      }`}
                   >
                     {tx.type === "earning" ? "+" : "-"}${tx.amount.toFixed(2)}
                   </p>

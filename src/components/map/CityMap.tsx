@@ -15,9 +15,9 @@ const DEFAULT_CENTER = {
   latitude: 39.8283,
 };
 
-// Map style - using Carto's Voyager for a clean look
+// Map style - using Carto's Dark Matter for dark mode look similar to Google Maps
 const MAP_STYLE =
-  "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
+  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 // Simplified Space type for the map
 export interface Space {
@@ -48,6 +48,87 @@ export function CityMap({ initialCenter }: CityMapProps) {
   const [selectedSpace, setSelectedSpace] = useState<Space | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [customMapStyle, setCustomMapStyle] = useState<any>(null);
+
+  // Load and customize map style to match Google Maps dark mode
+  useEffect(() => {
+    const loadCustomStyle = async () => {
+      try {
+        const response = await fetch(MAP_STYLE);
+        const style = await response.json();
+
+        // Deep navy water (match header blue) and dark gray land
+        const darkWaterColor = '#172554'; // Navy-ish header blue
+        const darkLandColor = '#0a0a0a'; // Very dark gray (slightly lighter than black)
+        const darkBackgroundColor = '#0a0a0a'; // Very dark gray background
+
+        // Modify all layers in the style
+        if (style.layers) {
+          style.layers.forEach((layer: any) => {
+            if (!layer.paint) return;
+
+            const layerId = layer.id?.toLowerCase() || '';
+            const isWater =
+              layerId.includes('water') ||
+              layerId.includes('ocean') ||
+              layerId.includes('sea') ||
+              layer.id === 'background';
+
+            const isLand =
+              !isWater && (
+                layerId.includes('land') ||
+                layerId.includes('country') ||
+                layerId.includes('admin') ||
+                layerId.includes('boundary') ||
+                layerId.includes('park') ||
+                layerId.includes('forest') ||
+                layerId.includes('landcover') ||
+                layerId.includes('landuse')
+              );
+
+            // Modify water layers
+            if (isWater) {
+              if (layer.paint['fill-color']) {
+                layer.paint['fill-color'] = darkWaterColor;
+              }
+              if (layer.paint['background-color']) {
+                layer.paint['background-color'] = darkWaterColor;
+              }
+              if (layer.paint['line-color']) {
+                layer.paint['line-color'] = darkWaterColor;
+              }
+            }
+
+            // Modify land layers
+            if (isLand) {
+              if (layer.paint['fill-color']) {
+                layer.paint['fill-color'] = darkLandColor;
+              }
+              if (layer.paint['background-color']) {
+                layer.paint['background-color'] = darkLandColor;
+              }
+            }
+          });
+        }
+
+        // Set background color
+        if (style.layers) {
+          const backgroundLayer = style.layers.find((l: any) => l.id === 'background');
+          if (backgroundLayer && backgroundLayer.paint) {
+            backgroundLayer.paint['background-color'] = darkBackgroundColor;
+          }
+        }
+
+        setCustomMapStyle(style);
+      } catch (err) {
+        console.error('Error loading custom map style:', err);
+        // Fall back to original style
+        setCustomMapStyle(MAP_STYLE);
+      }
+    };
+
+    loadCustomStyle();
+  }, []);
 
   // Booking flow state
   const [showBookingSheet, setShowBookingSheet] = useState(false);
@@ -155,6 +236,96 @@ export function CityMap({ initialCenter }: CityMapProps) {
     fetchSpaces();
   };
 
+  // Customize map colors on load to match Google Maps dark mode
+  const handleMapLoad = useCallback((event: any) => {
+    const map = event.target;
+
+    // Wait a bit for the map to fully initialize
+    setTimeout(() => {
+      try {
+        // Get all layers
+        const layers = map.getStyle().layers || [];
+
+        // Deep navy water (match header blue) and dark gray land
+        const darkWaterColor = '#172554'; // Navy-ish header blue for water
+        const darkLandColor = '#0a0a0a'; // Very dark gray for land (slightly lighter than black)
+        const darkBackgroundColor = '#0a0a0a'; // Very dark gray background
+
+        // Modify each layer
+        layers.forEach((layer: any) => {
+          if (!layer.id) return;
+
+          const layerId = layer.id;
+          const isWater =
+            layerId.toLowerCase().includes('water') ||
+            layerId.toLowerCase().includes('ocean') ||
+            layerId.toLowerCase().includes('sea') ||
+            layerId === 'background';
+
+          const isLand =
+            !isWater && (
+              layerId.toLowerCase().includes('land') ||
+              layerId.toLowerCase().includes('country') ||
+              layerId.toLowerCase().includes('admin') ||
+              layerId.toLowerCase().includes('boundary') ||
+              layerId.toLowerCase().includes('park') ||
+              layerId.toLowerCase().includes('forest') ||
+              layerId.toLowerCase().includes('landcover') ||
+              layerId.toLowerCase().includes('landuse')
+            );
+
+          try {
+            // Modify water layers
+            if (isWater) {
+              // Try all possible paint properties
+              ['fill-color', 'background-color', 'line-color', 'fill-outline-color'].forEach(prop => {
+                try {
+                  const currentValue = map.getPaintProperty(layerId, prop);
+                  if (currentValue !== undefined) {
+                    map.setPaintProperty(layerId, prop, darkWaterColor);
+                  }
+                } catch (e) {
+                  // Property doesn't exist, skip
+                }
+              });
+            }
+
+            // Modify land layers
+            if (isLand) {
+              ['fill-color', 'background-color'].forEach(prop => {
+                try {
+                  const currentValue = map.getPaintProperty(layerId, prop);
+                  if (currentValue !== undefined) {
+                    map.setPaintProperty(layerId, prop, darkLandColor);
+                  }
+                } catch (e) {
+                  // Property doesn't exist, skip
+                }
+              });
+            }
+          } catch (e) {
+            // Layer might not be accessible, continue
+          }
+        });
+
+        // Set background color
+        try {
+          const backgroundLayer = map.getLayer('background');
+          if (backgroundLayer) {
+            map.setPaintProperty('background', 'background-color', darkBackgroundColor);
+          }
+        } catch (e) {
+          // Background layer might not exist
+        }
+
+        // Force a repaint
+        map.triggerRepaint();
+      } catch (error) {
+        console.error('Error customizing map style:', error);
+      }
+    }, 100);
+  }, []);
+
   return (
     <div className="relative h-full w-full">
       <Map
@@ -167,10 +338,11 @@ export function CityMap({ initialCenter }: CityMapProps) {
           bearing: 0,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle={MAP_STYLE}
+        mapStyle={customMapStyle || MAP_STYLE}
         maxZoom={18}
         minZoom={2}
         projection={{ type: "globe" } as any}
+        onLoad={handleMapLoad}
         onClick={() => {
           if (!activeSession) {
             setSelectedSpace(null);
@@ -178,7 +350,7 @@ export function CityMap({ initialCenter }: CityMapProps) {
           }
         }}
       >
-        <NavigationControl position="top-right" />
+        <NavigationControl position="top-right" style={{ marginTop: "5rem" }} />
 
         {spaces.map((space) => (
           <SpaceMarker
@@ -193,7 +365,7 @@ export function CityMap({ initialCenter }: CityMapProps) {
 
       {/* Loading indicator */}
       {loading && (
-        <div className="absolute top-4 left-4 bg-white px-4 py-2 rounded-lg shadow-md">
+        <div className="absolute top-20 left-4 bg-white px-4 py-2 rounded-lg shadow-md">
           <span className="text-sm text-gray-600 flex items-center gap-2">
             <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
               <circle
@@ -218,14 +390,14 @@ export function CityMap({ initialCenter }: CityMapProps) {
 
       {/* Error message */}
       {error && (
-        <div className="absolute top-4 left-4 bg-red-50 border border-red-200 px-4 py-2 rounded-lg">
+        <div className="absolute top-20 left-4 bg-red-50 border border-red-200 px-4 py-2 rounded-lg">
           <span className="text-sm text-red-600">{error}</span>
         </div>
       )}
 
       {/* Space count & Legend */}
       {!loading && !error && !activeSession && (
-        <div className="absolute top-4 left-4 bg-white p-4 rounded-lg shadow-md">
+        <div className="absolute top-20 left-4 bg-white p-4 rounded-lg shadow-md">
           <p className="text-sm font-medium text-gray-900 mb-3">
             {spaces.length} space{spaces.length !== 1 ? "s" : ""} available
           </p>
@@ -235,11 +407,11 @@ export function CityMap({ initialCenter }: CityMapProps) {
               <span className="text-xs text-gray-600">Parking</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-4 w-4 rounded-full bg-green-500" />
+              <div className="h-4 w-4 rounded-full bg-amber-500" />
               <span className="text-xs text-gray-600">Storage</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-4 w-4 rounded-full bg-amber-500" />
+              <div className="h-4 w-4 rounded-full bg-green-500" />
               <span className="text-xs text-gray-600">Garden</span>
             </div>
             {user && (
