@@ -315,333 +315,360 @@ function EarningsTab({ data }: { data: ListerData }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Today's Earnings */}
         <Card>
-          {/* Monthly Earnings */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>This Month</CardDescription>
-              <CardTitle className="text-3xl">
-                ${data.totalEarningsMonth.toFixed(2)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-gray-500">From your spaces</p>
-            </CardContent>
-          </Card>
-
-          {/* Tax Savings Vault */}
-          <Card className="border-blue-200 bg-blue-50">
-            <CardHeader className="pb-2">
-              <CardDescription className="text-blue-700">
-                Tax Savings Vault
-              </CardDescription>
-              <CardTitle className="text-3xl text-blue-600">
-                ${data.taxVaultBalance.toFixed(2)}
-              </CardTitle>
-              <CardContent>
-                <div className="text-right">
-                  <p className="font-semibold text-green-600">
-                    +${tx.amount.toFixed(2)}
-                  </p>
-                  <p className="text-xs text-gray-500 capitalize">
-                    {tx.status}
-                  </p>
-                </div>
-              </div>
-              ))
-            )}
-            </CardHeader>
-            <CardContent>
-              <EarningsChart data={data.chartData} />
-            </CardContent>
-          </Card>
-
-          {/* Savings Sweep Explanation */}
-          <Card className="border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <span className="text-2xl">🏦</span>
-                Automatic Tax Savings (Capital One Integration)
-              </CardTitle>
-              <CardDescription className="text-green-700">
-                20% of every payout is automatically swept to your tax savings vault
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-8 flex-wrap">
-                <div>
-                  <p className="text-sm text-gray-600">Projected Q1 Tax</p>
-                  <p className="text-xl font-bold">${projectedTax.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Already Saved</p>
-                  <p className="text-xl font-bold text-green-600">
-                    ${data.taxVaultBalance.toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Progress</p>
-                  <div className="w-32 h-3 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 rounded-full transition-all"
-                      style={{ width: `${Math.min(taxProgress, 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {taxProgress.toFixed(1)}% saved
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Transactions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Activity</CardTitle>
-              <CardDescription>Your latest earnings from bookings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {data.recentTransactions.length === 0 ? (
-                  <p className="text-gray-500 py-4 text-center">
-                    No bookings yet.{" "}
-                    <Link href="/list-space" className="text-green-600 hover:underline">
-                      List a space
-                    </Link>{" "}
-                    to start earning!
-                  </p>
-                ) : (
-                  data.recentTransactions.map((tx) => (
-                    <div
-                      key={tx.id}
-                      className="flex items-center justify-between py-2 border-b last:border-0"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
-                          💰
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{tx.description}</p>
-                          <p className="text-xs text-gray-500">{tx.time}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-green-600">
-                          +${tx.amount.toFixed(2)}
-                        </p>
-                        <p className="text-xs text-gray-500 capitalize">
-                          {tx.status}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Fee Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Fee Structure</CardTitle>
-              <CardDescription>How your earnings are distributed</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-2xl font-bold">98%</p>
-                  <p className="text-sm text-gray-600">To You</p>
-                </div>
-                <div className="text-2xl text-gray-300">→</div>
-                <div className="flex-1 text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">78%</p>
-                  <p className="text-sm text-gray-600">Direct Payout</p>
-                </div>
-                <div className="text-2xl text-gray-300">+</div>
-                <div className="flex-1 text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">20%</p>
-                  <p className="text-sm text-gray-600">Tax Savings</p>
-                </div>
-                <div className="text-2xl text-gray-300">+</div>
-                <div className="flex-1 text-center p-4 bg-orange-50 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-600">2%</p>
-                  <p className="text-sm text-gray-600">City Fee</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-      </div>
-      );
-}
-
-      function ImpactTab({data}: {data: ListerData }) {
-  const treesEquivalent = Math.floor(data.co2SavedTotal / 48);
-      const score = Math.min(100, data.totalRentalsHosted * 2 + data.neighborsHelped * 5);
-
-      return (
-      <div className="space-y-6">
-        {/* Impact Hero */}
-        <Card className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
-          <CardHeader>
-            <CardTitle className="text-2xl">Your Community Impact</CardTitle>
-            <CardDescription className="text-green-100">
-              Thank you for making your city more sustainable!
-            </CardDescription>
+          <CardHeader className="pb-2">
+            <CardDescription>Today</CardDescription>
+            <CardTitle className="text-3xl">
+              ${data.totalEarningsToday.toFixed(2)}
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-8 mt-4">
-              <div className="text-center">
-                <p className="text-5xl font-bold">{data.neighborsHelped}</p>
-                <p className="text-green-100">Neighbors helped</p>
-              </div>
-              <div className="text-center">
-                <p className="text-5xl font-bold">{data.co2SavedToday.toFixed(1)}</p>
-                <p className="text-green-100">lbs CO2 saved today</p>
-              </div>
-              <div className="text-center">
-                <p className="text-5xl font-bold">{data.totalRentalsHosted}</p>
-                <p className="text-green-100">Total rentals hosted</p>
-              </div>
-            </div>
+            <p className="text-xs text-gray-500">Current day earnings</p>
           </CardContent>
         </Card>
 
-        {/* Environmental Impact */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <span className="text-2xl">🌱</span>
-                Carbon Footprint Reduction
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm text-gray-600">Total CO2 Saved</span>
-                    <span className="font-bold">{data.co2SavedTotal.toFixed(1)} lbs</span>
-                  </div>
-                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 rounded-full transition-all"
-                      style={{
-                        width: `${Math.min((data.co2SavedTotal / 100) * 100, 100)}%` /* scale: 0-100 lbs = 0-100% */,
-                      }}
-                    />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600">
-                  That&apos;s equivalent to planting{" "}
-                  <span className="font-bold text-green-600">
-                    {treesEquivalent} tree{treesEquivalent !== 1 ? "s" : ""}
-                  </span>{" "}
-                  🌳
-                </p>
-                <div className="bg-green-50 p-3 rounded-lg">
-                  <p className="text-sm text-green-800">
-                    By sharing your space, you&apos;ve helped reduce unnecessary
-                    driving. Each rental saves an average of {CO2_PER_RENTAL_LBS}{" "}
-                    lbs of CO2!
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Monthly Earnings */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>This Month</CardDescription>
+            <CardTitle className="text-3xl">
+              ${data.totalEarningsMonth.toFixed(2)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-gray-500">From your spaces</p>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <span className="text-2xl">🏘️</span>
-                Your Stats
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">Total Rentals</span>
-                  <span className="font-bold text-lg">{data.totalRentalsHosted}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">Unique Neighbors Helped</span>
-                  <span className="font-bold text-lg">{data.neighborsHelped}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">CO2 Saved (Total)</span>
-                  <span className="font-bold text-lg">
-                    {data.co2SavedTotal.toFixed(1)} lbs
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Tax Savings Vault */}
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader className="pb-2">
+            <CardDescription className="text-blue-700">
+              Tax Savings Vault
+            </CardDescription>
+            <CardTitle className="text-3xl text-blue-600">
+              ${data.taxVaultBalance.toFixed(2)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-blue-600">20% auto-saved from payouts</p>
+          </CardContent>
+        </Card>
 
-        {/* Community Growth Score */}
-        <Card className="border-purple-200">
+        {/* Total Spaces */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Listed Spaces</CardDescription>
+            <CardTitle className="text-3xl">{data.totalSpaces}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-gray-500">
+              {data.activeBookings} active {data.activeBookings === 1 ? 'booking' : 'bookings'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts and Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Earnings Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Earnings Overview</CardTitle>
+            <CardDescription>Your revenue over time</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EarningsChart data={data.chartData} />
+          </CardContent>
+        </Card>
+
+        {/* Savings Sweep Explanation */}
+        <Card className="border-green-200 bg-green-50">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <span className="text-2xl">⭐</span>
-              Community Growth Score
+              <span className="text-2xl">🏦</span>
+              Automatic Tax Savings (Capital One Integration)
             </CardTitle>
-            <CardDescription>
-              Your contribution to building a more sustainable city
+            <CardDescription className="text-green-700">
+              20% of every payout is automatically swept to your tax savings vault
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-8">
-              <div className="relative w-32 h-32">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    stroke="#e5e7eb"
-                    strokeWidth="12"
-                    fill="none"
-                  />
-                  <circle
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    stroke="#8b5cf6"
-                    strokeWidth="12"
-                    fill="none"
-                    strokeDasharray={`${(score / 100) * 351.86} 351.86`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-3xl font-bold text-purple-600">
-                    {score}
-                  </span>
-                </div>
+            <div className="flex items-center gap-8 flex-wrap">
+              <div>
+                <p className="text-sm text-gray-600">Projected Q1 Tax</p>
+                <p className="text-xl font-bold">${projectedTax.toFixed(2)}</p>
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-2">
-                  {score >= 50 ? "Great Progress! 🎉" : "Getting Started"}
-                </h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  {score >= 50
-                    ? "Keep sharing your space to grow your impact and reach Gold status!"
-                    : "List a space and complete rentals to grow your community score."}
+              <div>
+                <p className="text-sm text-gray-600">Already Saved</p>
+                <p className="text-xl font-bold text-green-600">
+                  ${data.taxVaultBalance.toFixed(2)}
                 </p>
-                <div className="flex gap-2 flex-wrap">
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm ${score >= 75
-                        ? "bg-yellow-100 text-yellow-700"
-                        : score >= 50
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                  >
-                    {score >= 75 ? "Gold" : score >= 50 ? "Silver" : "Bronze"} Member
-                  </span>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Progress</p>
+                <div className="w-32 h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full transition-all"
+                    style={{ width: `${Math.min(taxProgress, 100)}%` }}
+                  />
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {taxProgress.toFixed(1)}% saved
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Transactions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Recent Activity</CardTitle>
+            <CardDescription>Your latest earnings from bookings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {data.recentTransactions.length === 0 ? (
+                <p className="text-gray-500 py-4 text-center">
+                  No bookings yet.{" "}
+                  <Link href="/list-space" className="text-green-600 hover:underline">
+                    List a space
+                  </Link>{" "}
+                  to start earning!
+                </p>
+              ) : (
+                data.recentTransactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="flex items-center justify-between py-2 border-b last:border-0"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100">
+                        💰
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{tx.description}</p>
+                        <p className="text-xs text-gray-500">{tx.time}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-600">
+                        +${tx.amount.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-500 capitalize">
+                        {tx.status}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Fee Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Fee Structure</CardTitle>
+            <CardDescription>How your earnings are distributed</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 text-center p-4 bg-gray-50 rounded-lg">
+                <p className="text-2xl font-bold">98%</p>
+                <p className="text-sm text-gray-600">To You</p>
+              </div>
+              <div className="text-2xl text-gray-300">→</div>
+              <div className="flex-1 text-center p-4 bg-green-50 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">78%</p>
+                <p className="text-sm text-gray-600">Direct Payout</p>
+              </div>
+              <div className="text-2xl text-gray-300">+</div>
+              <div className="flex-1 text-center p-4 bg-blue-50 rounded-lg">
+                <p className="text-2xl font-bold text-blue-600">20%</p>
+                <p className="text-sm text-gray-600">Tax Savings</p>
+              </div>
+              <div className="text-2xl text-gray-300">+</div>
+              <div className="flex-1 text-center p-4 bg-orange-50 rounded-lg">
+                <p className="text-2xl font-bold text-orange-600">2%</p>
+                <p className="text-sm text-gray-600">City Fee</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-      );
+    </div>
+  );
+}
+
+function ImpactTab({ data }: { data: ListerData }) {
+  const treesEquivalent = Math.floor(data.co2SavedTotal / 48);
+  const score = Math.min(100, data.totalRentalsHosted * 2 + data.neighborsHelped * 5);
+
+  return (
+    <div className="space-y-6">
+      {/* Impact Hero */}
+      <Card className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+        <CardHeader>
+          <CardTitle className="text-2xl">Your Community Impact</CardTitle>
+          <CardDescription className="text-green-100">
+            Thank you for making your city more sustainable!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-8 mt-4">
+            <div className="text-center">
+              <p className="text-5xl font-bold">{data.neighborsHelped}</p>
+              <p className="text-green-100">Neighbors helped</p>
+            </div>
+            <div className="text-center">
+              <p className="text-5xl font-bold">{data.co2SavedToday.toFixed(1)}</p>
+              <p className="text-green-100">lbs CO2 saved today</p>
+            </div>
+            <div className="text-center">
+              <p className="text-5xl font-bold">{data.totalRentalsHosted}</p>
+              <p className="text-green-100">Total rentals hosted</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Environmental Impact */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span className="text-2xl">🌱</span>
+              Carbon Footprint Reduction
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm text-gray-600">Total CO2 Saved</span>
+                  <span className="font-bold">{data.co2SavedTotal.toFixed(1)} lbs</span>
+                </div>
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full transition-all"
+                    style={{
+                      width: `${Math.min((data.co2SavedTotal / 100) * 100, 100)}%` /* scale: 0-100 lbs = 0-100% */,
+                    }}
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">
+                That&apos;s equivalent to planting{" "}
+                <span className="font-bold text-green-600">
+                  {treesEquivalent} tree{treesEquivalent !== 1 ? "s" : ""}
+                </span>{" "}
+                🌳
+              </p>
+              <div className="bg-green-50 p-3 rounded-lg">
+                <p className="text-sm text-green-800">
+                  By sharing your space, you&apos;ve helped reduce unnecessary
+                  driving. Each rental saves an average of {CO2_PER_RENTAL_LBS}{" "}
+                  lbs of CO2!
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span className="text-2xl">🏘️</span>
+              Your Stats
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-gray-600">Total Rentals</span>
+                <span className="font-bold text-lg">{data.totalRentalsHosted}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-gray-600">Unique Neighbors Helped</span>
+                <span className="font-bold text-lg">{data.neighborsHelped}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="text-gray-600">CO2 Saved (Total)</span>
+                <span className="font-bold text-lg">
+                  {data.co2SavedTotal.toFixed(1)} lbs
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Community Growth Score */}
+      <Card className="border-purple-200">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <span className="text-2xl">⭐</span>
+            Community Growth Score
+          </CardTitle>
+          <CardDescription>
+            Your contribution to building a more sustainable city
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-8">
+            <div className="relative w-32 h-32">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="56"
+                  stroke="#e5e7eb"
+                  strokeWidth="12"
+                  fill="none"
+                />
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="56"
+                  stroke="#8b5cf6"
+                  strokeWidth="12"
+                  fill="none"
+                  strokeDasharray={`${(score / 100) * 351.86} 351.86`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-3xl font-bold text-purple-600">
+                  {score}
+                </span>
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg mb-2">
+                {score >= 50 ? "Great Progress! 🎉" : "Getting Started"}
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">
+                {score >= 50
+                  ? "Keep sharing your space to grow your impact and reach Gold status!"
+                  : "List a space and complete rentals to grow your community score."}
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <span
+                  className={`px-3 py-1 rounded-full text-sm ${score >= 75
+                    ? "bg-yellow-100 text-yellow-700"
+                    : score >= 50
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-gray-100 text-gray-600"
+                    }`}
+                >
+                  {score >= 75 ? "Gold" : score >= 50 ? "Silver" : "Bronze"} Member
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
