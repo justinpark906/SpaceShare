@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   title: "SpaceShare - Share Your Space",
   description:
     "Turn your unused parking spots, storage spaces, and gardens into income",
+  icons: {
+    icon: "/spaceshare-removebg-preview.png",
+    apple: "/spaceshare-removebg-preview.png",
+  },
 };
 
 export default function RootLayout({

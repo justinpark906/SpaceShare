@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, User } from "lucide-react";
@@ -15,18 +16,20 @@ export function Header({ variant = "hero", onLogoClick }: HeaderProps) {
 
   const isCompact = variant === "compact";
 
+  const logoSize = isCompact ? 32 : 40;
+
   const Logo = onLogoClick ? (
     <button
       onClick={onLogoClick}
       className="flex items-center gap-2 hover:opacity-80 transition-opacity"
     >
-      <div
-        className={`flex items-center justify-center rounded-${isCompact ? "lg" : "xl"} bg-green-600 text-white font-bold ${
-          isCompact ? "h-8 w-8" : "h-10 w-10 text-lg"
-        }`}
-      >
-        S
-      </div>
+      <Image
+        src="/spaceshare-removebg-preview.png"
+        alt="SpaceShare"
+        width={logoSize}
+        height={logoSize}
+        className="rounded-lg"
+      />
       <span
         className={`font-${isCompact ? "semibold" : "bold"} text-gray-900 dark:text-gray-100 ${
           isCompact ? "text-xl" : "text-2xl"
@@ -37,13 +40,13 @@ export function Header({ variant = "hero", onLogoClick }: HeaderProps) {
     </button>
   ) : (
     <Link href="/" className="flex items-center gap-2">
-      <div
-        className={`flex items-center justify-center rounded-${isCompact ? "lg" : "xl"} bg-green-600 text-white font-bold ${
-          isCompact ? "h-8 w-8" : "h-10 w-10 text-lg"
-        }`}
-      >
-        S
-      </div>
+      <Image
+        src="/spaceshare-removebg-preview.png"
+        alt="SpaceShare"
+        width={logoSize}
+        height={logoSize}
+        className="rounded-lg"
+      />
       <span
         className={`font-${isCompact ? "semibold" : "bold"} text-gray-900 dark:text-gray-100 ${
           isCompact ? "text-xl" : "text-2xl"
@@ -57,7 +60,9 @@ export function Header({ variant = "hero", onLogoClick }: HeaderProps) {
   return (
     <header
       className={`flex items-center justify-between ${
-        isCompact ? "border-b bg-white dark:bg-gray-900 dark:border-gray-800 px-4 py-3 shadow-sm" : "px-6 py-4"
+        isCompact
+          ? "border-b bg-white dark:bg-gray-900 dark:border-gray-800 px-4 py-3 shadow-sm"
+          : "px-6 py-4"
       }`}
     >
       {Logo}
