@@ -77,20 +77,20 @@ export function BookingSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
+      <SheetContent className="w-full sm:max-w-md px-6">
+        <SheetHeader className="text-center">
+          <SheetTitle className="flex items-center justify-center gap-2">
             <span className="text-2xl">{typeEmojis[spaceType]}</span>
             {space.name}
           </SheetTitle>
-          <SheetDescription>
+          <SheetDescription className="text-center">
             {space.address || "Location available"}
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-6 flex flex-col items-center w-full">
           {/* Space Type Badge */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-center">
             <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
               {typeLabels[spaceType]}
             </span>
@@ -101,15 +101,15 @@ export function BookingSheet({
 
           {/* Description */}
           {space.description && (
-            <p className="text-gray-600">{space.description}</p>
+            <p className="text-gray-600 text-center">{space.description}</p>
           )}
 
           {/* Duration Selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="w-full">
+            <label className="block text-sm font-medium text-gray-700 mb-2 text-center">
               How long do you need it?
             </label>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center gap-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -133,7 +133,7 @@ export function BookingSheet({
           </div>
 
           {/* Price Breakdown */}
-          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+          <div className="bg-gray-50 rounded-lg p-4 space-y-2 w-full">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">
                 ${space.pricePerHour.toFixed(2)} x {hours} hour
@@ -152,7 +152,7 @@ export function BookingSheet({
           </div>
 
           {/* Owner Info */}
-          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg w-full">
             <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-700 font-bold">
               S
             </div>
