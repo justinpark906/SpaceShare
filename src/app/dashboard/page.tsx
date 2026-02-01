@@ -303,13 +303,23 @@ export default function Dashboard() {
     return (
       sum +
       listing.bookings
-        .filter((b) => b.status === "COMPLETED" || b.status === "ACTIVE")
+        .filter(
+          (b) =>
+            b.status === "COMPLETED" ||
+            b.status === "ACTIVE" ||
+            b.status === "CONFIRMED",
+        )
         .reduce((s, b) => s + b.total_price, 0)
     );
   }, 0);
 
   const totalSpent = myBookings
-    .filter((b) => b.status === "COMPLETED" || b.status === "ACTIVE")
+    .filter(
+      (b) =>
+        b.status === "COMPLETED" ||
+        b.status === "ACTIVE" ||
+        b.status === "CONFIRMED",
+    )
     .reduce((sum, b) => sum + b.total_price, 0);
 
   const activeRenters = myListings.reduce(
@@ -535,7 +545,11 @@ function BookingsSection({
           </div>
           <div className="space-y-4">
             {activeBookings.map((booking) => (
-              <ActiveBookingCard key={booking.id} booking={booking} />
+              <ActiveBookingCard
+                key={booking.id}
+                booking={booking}
+                onRefresh={onRefresh}
+              />
             ))}
           </div>
         </div>
@@ -558,10 +572,17 @@ function BookingsSection({
   );
 }
 
-function ActiveBookingCard({ booking }: { booking: Booking }) {
+function ActiveBookingCard({
+  booking,
+  onRefresh,
+}: {
+  booking: Booking;
+  onRefresh: () => void;
+}) {
   const [unlocking, setUnlocking] = useState(false);
   const [unlockSuccess, setUnlockSuccess] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showEndBookingModal, setShowEndBookingModal] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(
     getTimeRemaining(booking.end_date),
   );
@@ -580,6 +601,30 @@ function ActiveBookingCard({ booking }: { booking: Booking }) {
     if (!space) return;
     setUnlocking(true);
     try {
+      // Try to get user's current location for proximity verification
+      let userLatitude: number | undefined;
+      let userLongitude: number | undefined;
+
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>(
+            (resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0,
+              });
+            },
+          );
+          userLatitude = position.coords.latitude;
+          userLongitude = position.coords.longitude;
+        } catch (geoError) {
+          console.log(
+            "Location not available, proceeding without proximity check",
+          );
+        }
+      }
+
       const response = await fetch("/api/iot/unlock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -587,6 +632,8 @@ function ActiveBookingCard({ booking }: { booking: Booking }) {
           bookingId: booking.id,
           spaceId: space.id,
           userId: booking.space?.owner_id,
+          userLatitude,
+          userLongitude,
         }),
       });
       if (response.ok) {
@@ -723,6 +770,15 @@ function ActiveBookingCard({ booking }: { booking: Booking }) {
               <AlertTriangle className="h-4 w-4 mr-2" />
               Report Issue
             </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => setShowEndBookingModal(true)}
+              className="flex-1 sm:flex-none border-orange-900/50 text-orange-400 hover:bg-orange-900/20"
+            >
+              <X className="h-4 w-4 mr-2" />
+              End My Booking
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -732,6 +788,16 @@ function ActiveBookingCard({ booking }: { booking: Booking }) {
         <ReportIssueModal
           bookingId={booking.id}
           onClose={() => setShowReportModal(false)}
+        />
+      )}
+
+      {/* End Booking Modal */}
+      {showEndBookingModal && (
+        <EndBookingModal
+          bookingId={booking.id}
+          spaceName={space?.name || "Space"}
+          onClose={() => setShowEndBookingModal(false)}
+          onConfirm={onRefresh}
         />
       )}
     </>
@@ -947,6 +1013,112 @@ function ReportIssueModal({
   );
 }
 
+function EndBookingModal({
+  bookingId,
+  spaceName,
+  onClose,
+  onConfirm,
+}: {
+  bookingId: string;
+  spaceName: string;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const [ending, setEnding] = useState(false);
+  const [ended, setEnded] = useState(false);
+
+  const handleEndBooking = async () => {
+    setEnding(true);
+    try {
+      const response = await fetch("/api/bookings/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId }),
+      });
+      if (response.ok) {
+        setEnded(true);
+        setTimeout(() => {
+          onClose();
+          onConfirm();
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("End booking failed:", error);
+    } finally {
+      setEnding(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <Card className="bg-gray-800 border-gray-700 w-full max-w-md">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-white">End Booking Early</CardTitle>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {ended ? (
+            <div className="text-center py-8">
+              <Check className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <p className="text-white font-medium">Booking Ended</p>
+              <p className="text-gray-400 text-sm">
+                The space is now available for others.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="bg-orange-900/20 border border-orange-800/50 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-orange-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-orange-400 font-medium">
+                      No refund will be issued
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Ending your booking early means you forfeit the remaining
+                      days. The space will become available for other renters
+                      immediately.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-900/50 rounded-lg p-4">
+                <p className="text-sm text-gray-400">
+                  You are ending your booking for:
+                </p>
+                <p className="text-white font-medium mt-1">{spaceName}</p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                >
+                  Keep Booking
+                </Button>
+                <Button
+                  onClick={handleEndBooking}
+                  disabled={ending}
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                >
+                  {ending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
+                  End Booking
+                </Button>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ============================================================================
 // MY LISTINGS SECTION (Owner View)
 // ============================================================================
@@ -987,7 +1159,12 @@ function ListingsSection({
     (sum, l) =>
       sum +
       l.bookings
-        .filter((b) => b.status === "COMPLETED" || b.status === "ACTIVE")
+        .filter(
+          (b) =>
+            b.status === "COMPLETED" ||
+            b.status === "ACTIVE" ||
+            b.status === "CONFIRMED",
+        )
         .reduce((s, b) => s + b.total_price, 0),
     0,
   );
@@ -1069,7 +1246,12 @@ function ListingCard({
     (b) => b.status === "PENDING",
   );
   const totalEarned = listing.bookings
-    .filter((b) => b.status === "COMPLETED" || b.status === "ACTIVE")
+    .filter(
+      (b) =>
+        b.status === "COMPLETED" ||
+        b.status === "ACTIVE" ||
+        b.status === "CONFIRMED",
+    )
     .reduce((sum, b) => sum + b.total_price, 0);
 
   const isLive = listing.status === "AVAILABLE";

@@ -24,7 +24,8 @@ export async function notifyNewBooking(params: {
   endDate: string;
   totalPrice: number;
 }): Promise<{ success: boolean; error?: string }> {
-  const { ownerEmail, renterName, spaceName, startDate, endDate, totalPrice } = params;
+  const { ownerEmail, renterName, spaceName, startDate, endDate, totalPrice } =
+    params;
 
   try {
     const client = getSNSClient();
@@ -61,7 +62,7 @@ Log in to your dashboard to manage this booking.
     console.error("Failed to send booking notification:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -107,7 +108,7 @@ The access has been automatically unlocked.
     console.error("Failed to send arrival notification:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -154,7 +155,7 @@ Your earnings will be disbursed shortly.
     console.error("Failed to send departure notification:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
@@ -191,7 +192,66 @@ export async function sendSMS(params: {
     console.error("Failed to send SMS:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error"
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Notify space owner of an issue reported by renter
+ */
+export async function notifyOwnerOfIssue(params: {
+  ownerEmail: string;
+  ownerPhone?: string;
+  spaceName: string;
+  issueType: string;
+  renterName: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const { ownerEmail, ownerPhone, spaceName, issueType, renterName } = params;
+
+  try {
+    const client = getSNSClient();
+
+    const message = `
+ISSUE REPORTED - SpaceShare
+
+${renterName} reported an issue with "${spaceName}":
+${issueType}
+
+Please check your dashboard and contact the renter to resolve this issue.
+    `.trim();
+
+    // Send to SNS topic
+    const command = new PublishCommand({
+      TopicArn: AWS_CONFIG.sns.bookingTopicArn, // Reuse booking topic for now
+      Message: message,
+      Subject: `Issue Reported: ${spaceName}`,
+      MessageAttributes: {
+        email: {
+          DataType: "String",
+          StringValue: ownerEmail,
+        },
+      },
+    });
+
+    await client.send(command);
+
+    // Also send SMS if phone number available (urgent)
+    if (ownerPhone) {
+      await sendSMS({
+        phoneNumber: ownerPhone,
+        message: `SpaceShare Alert: ${renterName} reported "${issueType}" at ${spaceName}. Check your dashboard.`,
+      });
+    }
+
+    console.log(`📧 Issue notification sent to ${ownerEmail}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to send issue notification:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
